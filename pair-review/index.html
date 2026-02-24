@@ -7,7 +7,7 @@
   <!-- Option B: invisible signature + versioning -->
   <meta name="author" content="GraceP" />
   <meta name="artifact-credits" content="Developed/Designed by GraceP" />
-  <meta name="artifact-version" content="0.3.0" />
+  <meta name="artifact-version" content="0.4.0" />
   <meta name="artifact-build-date" content="" />
 
   <title>Salesforce Pair Review → Jira Summary + package.xml + CSV (GraceP)</title>
@@ -33,7 +33,7 @@
       position:sticky; top:0; background:rgba(11,15,20,.88); backdrop-filter: blur(8px);
       z-index:10;
     }
-    .wrap{ max-width:1200px; margin:0 auto; padding:14px 18px 36px; }
+    .wrap{ max-width:980px; margin:0 auto; padding:14px 18px 36px; }
     h1{
       margin:0 0 6px; font-size:16px; letter-spacing:.2px;
       display:flex; align-items:center; gap:10px; flex-wrap:wrap;
@@ -43,13 +43,8 @@
       border-radius:999px; color:var(--muted); background:rgba(17,24,38,.7);
       white-space:nowrap;
     }
-    .grid{
-      display:grid; grid-template-columns: 1fr 1fr; gap:12px; align-items:start;
-    }
-    @media (max-width: 980px){
-      .grid{ grid-template-columns: 1fr; }
-      header{ position:static; }
-    }
+    .stack{ display:flex; flex-direction:column; gap:12px; }
+
     .card{
       border:1px solid var(--border); border-radius:14px; background:rgba(17,24,38,.72);
       box-shadow: 0 10px 30px rgba(0,0,0,.25);
@@ -63,7 +58,7 @@
     }
     .card .body{ padding:12px 14px; }
     label{ display:block; font-size:12px; color:var(--muted); margin:10px 0 6px; }
-    input[type="text"], select, textarea{
+    input[type="text"], input[type="date"], select, textarea{
       width:100%; border:1px solid var(--border); border-radius:10px;
       background:rgba(15,23,34,.7); color:var(--text); padding:10px 10px;
       outline:none;
@@ -205,6 +200,8 @@
       .mdRowGrid{ grid-template-columns:1fr; }
     }
     .mdRow textarea{ min-height:70px; }
+
+    .hidden { display:none !important; }
   </style>
 </head>
 
@@ -214,7 +211,7 @@
       <h1>
         Salesforce Pair Review → Jira Summary + package.xml + CSV
         <span class="tag" id="modeTag">MODE: FULL</span>
-        <span class="tag" id="versionTag">v0.3.0</span>
+        <span class="tag" id="versionTag">v0.4.0</span>
         <span class="tag" id="buildDateTag">build: yyyy-mm-dd</span>
         <span class="tag">by GraceP</span>
       </h1>
@@ -223,24 +220,39 @@
   </header>
 
   <div class="wrap">
-    <div class="grid">
+    <div class="stack">
 
-      <!-- Left -->
       <div class="card">
-        <h2>Step 0. meta.json <span class="badge">start here</span></h2>
+        <h2>Header <span class="badge">fill this first</span></h2>
         <div class="body">
-          <div class="tiny">Steps: 1) Types → 2) Members → 3) Jira → 4) package.xml → 5) CSV</div>
+          <div class="tiny">Order: Header → Pair Review → Metadata → Outputs. Like a clean deploy plan: boring, reliable, heroic.</div>
 
           <div class="row">
             <div>
-              <label>Ticket (optional)</label>
+              <label>Date (for CSV export)</label>
+              <input type="date" id="deployDate" />
+              <div class="tiny">Defaults to today. Change if you are documenting a future deploy.</div>
+            </div>
+            <div>
+              <label>Ticket</label>
               <input type="text" id="ticket" placeholder="e.g., OCRM-1234" />
             </div>
+          </div>
+
+          <div class="row">
             <div>
               <label>Review Type</label>
               <select id="reviewType">
                 <option value="full">Full (30–45 min)</option>
                 <option value="light">Light (10–15 min)</option>
+              </select>
+            </div>
+            <div>
+              <label>Risk Level</label>
+              <select id="risk">
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High (bring snacks)</option>
               </select>
             </div>
           </div>
@@ -258,6 +270,11 @@
 
           <div class="row">
             <div>
+              <label>Deployed By (Developer)</label>
+              <input type="text" id="deployedBy" placeholder="Name" />
+              <div class="tiny">Used in CSV rows. Defaults to Author if empty.</div>
+            </div>
+            <div>
               <label>Result</label>
               <select id="result">
                 <option value="Approved">✅ Approved</option>
@@ -265,111 +282,20 @@
                 <option value="Changes required">❌ Changes required</option>
               </select>
             </div>
-            <div>
-              <label>Risk Level</label>
-              <select id="risk">
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High (bring snacks)</option>
-              </select>
-            </div>
           </div>
 
-          <label>Artifacts Reviewed (optional, future-proof)</label>
-          <textarea id="artifacts" placeholder="- Commit/Tag: ...&#10;- Branch: ...&#10;- Links (doc/mock): ...&#10;- Notes: ..."></textarea>
+          <label>General Comments (anything else)</label>
+          <textarea id="generalComments" placeholder="- Anything you want in the CSV 'Comments' column (and Jira if useful)."></textarea>
 
-          <label>Step 1. Select Metadata Types to Deploy (package-style)</label>
-          <div class="tiny">Select types first. Matching rows will auto-appear in Step 2.</div>
-          <div class="metaBox">
-            <div class="metaHeader">
-              <input type="text" id="metaSearch" placeholder="Search metadata types (Flow, ApexClass, PermissionSet)..." />
-              <span class="badge" id="metaCount">0 selected</span>
-              <button class="btn-ghost" type="button" id="metaSelectCommonBtn">Select Common</button>
-              <button class="btn-ghost" type="button" id="metaClearBtn">Clear</button>
-            </div>
-            <div class="metaList" id="metaList"></div>
-
-            <label style="margin-top:10px;">Other metadata types / notes</label>
-            <textarea id="metaOther" placeholder="- Example: WaveTemplateBundle&#10;- Example: DigitalExperienceBundle"></textarea>
+          <div class="hidden">
+            <label>Artifacts Reviewed (optional, future-proof)</label>
+            <textarea id="artifacts" placeholder="- Commit/Tag: ..."></textarea>
           </div>
-
-          <label>Step 2. List Specific Metadata Members to Deploy (components)</label>
-          <div class="tiny">Add exact API names. One per line (or comma-separated). This drives package.xml + CSV.</div>
-
-          <div class="metaBox">
-            <div class="metaHeader">
-              <span class="badge">Type + members</span>
-              <button class="btn-ghost" type="button" id="mdAddSelectedBtn">Add selected types here</button>
-              <button class="btn-ghost" type="button" id="mdAddRowBtn">+ Add Type</button>
-            </div>
-
-            <div id="mdRows"></div>
-
-            <label style="margin-top:10px;">Quick paste (optional)</label>
-            <textarea id="mdQuickPaste" placeholder="Flow: CaseTriggerFlow, Contact_Onboarding
-ApexClass: JwtService, SharePointClient
-PermissionSet: Support_User"></textarea>
-
-            <div class="btnRow" style="margin-top:10px;">
-              <button class="btn-ghost" type="button" id="mdParsePasteBtn">Parse Quick Paste</button>
-              <button class="btn-ghost" type="button" id="mdClearRowsBtn">Clear Members</button>
-            </div>
-          </div>
-
-          <label>Key Risks Identified (bullets)</label>
-          <textarea id="keyRisks" placeholder="- Example: Flow re-entry risk if criteria too broad&#10;- Example: FLS not enforced in Apex"></textarea>
-
-          <label>Follow-up Actions (bullets)</label>
-          <textarea id="actionsTxt" placeholder="- Example: Add negative test for perms&#10;- Example: Add fault path + logging"></textarea>
-
-          <label>QA Validation Notes</label>
-          <textarea id="qaNotes" placeholder="- Steps to validate + sample data + expected outcomes"></textarea>
-
-          <label>Pre-Deploy Checklist (bullets)</label>
-          <textarea id="preDeploy" placeholder="- Validate in target org (check-only)&#10;- Confirm permission assignments&#10;- Smoke test plan ready"></textarea>
-
-          <label>Pre-Deploy Comments (open field)</label>
-          <textarea id="preDeployComments" placeholder="Anything special? env quirks? flags? data pre-steps?"></textarea>
-
-          <label>Post-Deploy Checklist (bullets)</label>
-          <textarea id="postDeploy" placeholder="- Assign permission sets&#10;- Run scripts/jobs (if any)&#10;- Smoke tests completed"></textarea>
-
-          <label>Post-Deploy Comments (open field)</label>
-          <textarea id="postDeployComments" placeholder="What actually happened? learnings? follow-ups?"></textarea>
-
-          <label>Deployment Notes (dependencies/backout)</label>
-          <textarea id="deployNotes" placeholder="- Dependencies, rollout/backout notes"></textarea>
-
-          <!-- Buttons grouped -->
-          <div class="actions">
-            <div class="btnRow">
-              <span class="badge">Step 3. Jira</span>
-              <button class="btn-good" id="generateBtn" type="button">Generate Jira Summary</button>
-              <button class="btn-ghost" id="copyBtn" type="button">Copy Jira Summary</button>
-            </div>
-
-            <div class="btnRow">
-              <span class="badge">Step 4. Package</span>
-              <button class="btn-ghost" id="pkgBtn" type="button">Generate package.xml</button>
-              <button class="btn-ghost" id="copyPkgBtn" type="button">Copy package.xml</button>
-            </div>
-
-            <div class="btnRow">
-              <span class="badge">Step 5. CSV</span>
-              <button class="btn-ghost" id="csvBtn" type="button">Export CSV (Type, Member)</button>
-              <button class="btn-warn" id="expandAllBtn" type="button">Expand All</button>
-              <button class="btn-warn" id="collapseAllBtn" type="button">Collapse All</button>
-              <button class="btn-bad" id="resetBtn" type="button">Reset</button>
-            </div>
-          </div>
-
-          <div class="tiny">Credits are in meta tags. Invisible, present, and low-maintenance.</div>
         </div>
       </div>
 
-      <!-- Right -->
       <div class="card">
-        <h2>review.checklist <span class="badge" id="checklistBadge">full set</span></h2>
+        <h2>Pair Review Checklist <span class="badge" id="checklistBadge">full set</span></h2>
         <div class="body">
 
           <div id="fullSections">
@@ -476,10 +402,104 @@ PermissionSet: Support_User"></textarea>
             </details>
           </div>
 
+          <div class="btnRow" style="margin-top:10px;">
+            <button class="btn-warn" id="expandAllBtn" type="button">Expand All</button>
+            <button class="btn-warn" id="collapseAllBtn" type="button">Collapse All</button>
+          </div>
+
+          <div class="tiny">Tip: Light mode is for quick safety. Full mode is for when a Flow and an Apex Trigger walk into a bar.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Metadata to Deploy <span class="badge">types + members</span></h2>
+        <div class="body">
+
+          <label>Step 1. Select Metadata Types to Deploy (package-style)</label>
+          <div class="tiny">Select types first. Matching rows will auto-appear below.</div>
+
+          <div class="metaBox">
+            <div class="metaHeader">
+              <input type="text" id="metaSearch" placeholder="Search metadata types (Flow, ApexClass, PermissionSet)..." />
+              <span class="badge" id="metaCount">0 selected</span>
+              <button class="btn-ghost" type="button" id="metaSelectCommonBtn">Select Common</button>
+              <button class="btn-ghost" type="button" id="metaClearBtn">Clear</button>
+            </div>
+            <div class="metaList" id="metaList"></div>
+
+            <label style="margin-top:10px;">Other metadata types / notes</label>
+            <textarea id="metaOther" placeholder="- Example: WaveTemplateBundle&#10;- Example: DigitalExperienceBundle"></textarea>
+          </div>
+
+          <label style="margin-top:14px;">Step 2. List Specific Metadata Members to Deploy (components)</label>
+          <div class="tiny">This is the source of truth for package.xml and for the CSV lines.</div>
+
+          <div class="metaBox">
+            <div class="metaHeader">
+              <span class="badge">Type + members</span>
+              <button class="btn-ghost" type="button" id="mdAddSelectedBtn">Add selected types here</button>
+              <button class="btn-ghost" type="button" id="mdAddRowBtn">+ Add Type</button>
+            </div>
+
+            <div id="mdRows"></div>
+
+            <label style="margin-top:10px;">Quick paste (optional)</label>
+            <textarea id="mdQuickPaste" placeholder="Flow: CaseTriggerFlow, Contact_Onboarding
+ApexClass: JwtService, SharePointClient
+PermissionSet: Support_User"></textarea>
+
+            <div class="btnRow" style="margin-top:10px;">
+              <button class="btn-ghost" type="button" id="mdParsePasteBtn">Parse Quick Paste</button>
+              <button class="btn-ghost" type="button" id="mdClearRowsBtn">Clear Members</button>
+            </div>
+          </div>
+
+          <label>Pre-Deployment Checklist (bullets)</label>
+          <textarea id="preDeploy" placeholder="- Validate in target org (check-only)&#10;- Confirm permission assignments&#10;- Smoke test plan ready"></textarea>
+
+          <label>Pre-Deployment Comments (open field)</label>
+          <textarea id="preDeployComments" placeholder="Anything special? env quirks? flags? data pre-steps?"></textarea>
+
+          <label>Post-Deployment Checklist (bullets)</label>
+          <textarea id="postDeploy" placeholder="- Assign permission sets&#10;- Run scripts/jobs (if any)&#10;- Smoke tests completed"></textarea>
+
+          <label>Post-Deployment Comments (open field)</label>
+          <textarea id="postDeployComments" placeholder="What actually happened? learnings? follow-ups?"></textarea>
+
+          <label>Deployment Notes (dependencies/backout)</label>
+          <textarea id="deployNotes" placeholder="- Dependencies, rollout/backout notes"></textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Outputs <span class="badge">Jira + package.xml + CSV</span></h2>
+        <div class="body">
+          <div class="tiny">Generate Jira comment, manifest, and CSV. Three birds, one button-row. No feathers in prod.</div>
+
+          <div class="actions">
+            <div class="btnRow">
+              <span class="badge">Jira</span>
+              <button class="btn-good" id="generateBtn" type="button">Generate Jira Summary</button>
+              <button class="btn-ghost" id="copyBtn" type="button">Copy Jira Summary</button>
+            </div>
+
+            <div class="btnRow">
+              <span class="badge">Package</span>
+              <button class="btn-ghost" id="pkgBtn" type="button">Generate package.xml</button>
+              <button class="btn-ghost" id="copyPkgBtn" type="button">Copy package.xml</button>
+            </div>
+
+            <div class="btnRow">
+              <span class="badge">CSV</span>
+              <button class="btn-ghost" id="csvBtn" type="button">Export CSV (deploy log)</button>
+              <button class="btn-bad" id="resetBtn" type="button">Reset</button>
+            </div>
+          </div>
+
           <div class="divider"></div>
 
           <label>Generated Jira Summary</label>
-          <textarea id="output" readonly placeholder="Step 3: Generate Jira Summary → copy/paste into Jira"></textarea>
+          <textarea id="output" readonly placeholder="Generate Jira Summary → copy/paste into Jira"></textarea>
 
           <label style="margin-top:10px;">Generated package.xml</label>
           <div class="row">
@@ -492,9 +512,9 @@ PermissionSet: Support_User"></textarea>
               <input type="text" id="pkgNotes" placeholder="e.g., QA deploy manifest" />
             </div>
           </div>
-          <textarea id="pkgOutput" readonly placeholder="Step 4: Generate package.xml"></textarea>
+          <textarea id="pkgOutput" readonly placeholder="Generate package.xml"></textarea>
 
-          <div class="tiny">CSV export downloads Type, Member rows you can open in Excel.</div>
+          <div class="tiny">CSV columns: Date, Ticket, Metadata Type, Metadata Name, Deployed By, Pre-Deployment, Post-Deployment, Risk, Status, Comments.</div>
         </div>
       </div>
 
@@ -504,8 +524,7 @@ PermissionSet: Support_User"></textarea>
   <div class="toast" id="toast"></div>
 
   <script>
-    // ===== Version + Build =====
-    const ARTIFACT_VERSION = "0.3.0";
+    const ARTIFACT_VERSION = "0.4.0";
     function isoDate(){
       const d = new Date();
       const pad = (n) => String(n).padStart(2, "0");
@@ -555,7 +574,6 @@ PermissionSet: Support_User"></textarea>
       document.querySelectorAll("details").forEach(d => d.open = open);
     }
 
-    // ===== Checklists =====
     const FULL = {
       functional: [
         "Acceptance Criteria fully met (no creative interpretation)",
@@ -698,7 +716,6 @@ PermissionSet: Support_User"></textarea>
       }
     }
 
-    // ===== Metadata Types =====
     const METADATA_TYPES = [
       "ApexClass","ApexTrigger","LightningComponentBundle","AuraDefinitionBundle","StaticResource",
       "FlexiPage","Layout","CompactLayout","CustomTab","WebLink",
@@ -793,7 +810,6 @@ PermissionSet: Support_User"></textarea>
       toast("Metadata selection cleared 🧹");
     }
 
-    // ===== Metadata Members =====
     function mdRowTemplate(id, selectedType = "Flow", members = "", notes = ""){
       const div = document.createElement("div");
       div.className = "mdRow";
@@ -938,7 +954,6 @@ Support_User"></textarea>
         if (!type || !rest) continue;
 
         mdAddRowIfMissing(type);
-        // Put members into the existing row for that type (append)
         const rowId = mdFindRowIdByType(type);
         if (rowId){
           const mem = $(`mdMembers__${rowId}`);
@@ -978,7 +993,6 @@ Support_User"></textarea>
       const selected = selectedMetadataTypes();
       selected.forEach(t => mdAddRowIfMissing(t));
 
-      // Visual cue: dim rows whose type is not selected (but keep them, to avoid data loss)
       const selectedSet = new Set(selected);
       document.querySelectorAll("#mdRows .mdRow").forEach(r => {
         const id = r.dataset.rowId;
@@ -988,7 +1002,6 @@ Support_User"></textarea>
       });
     }
 
-    // ===== Mode switching + completion =====
     function setMode(mode){
       const isLight = mode === "light";
       $("fullSections").style.display = isLight ? "none" : "block";
@@ -1045,10 +1058,19 @@ Support_User"></textarea>
       $("completionScore").innerHTML = `Checklist completion: <b>${pct}%</b> (future maintainers thank you)`;
     }
 
-    // ===== Summary + package.xml + CSV =====
     function bulletsFromTextarea(text){
       const lines = (text || "").split("\n").map(s => s.trim()).filter(Boolean);
       return lines.map(l => l.startsWith("-") ? l : `- ${l}`);
+    }
+
+    function buildDeployText(bulletsText, commentsText){
+      const bullets = bulletsFromTextarea(bulletsText);
+      const comments = (commentsText || "").trim();
+      let s = bullets.length ? bullets.join(" | ") : "";
+      if (comments){
+        s = s ? `${s} | Comments: ${comments}` : `Comments: ${comments}`;
+      }
+      return s.trim();
     }
 
     function genSummary(){
@@ -1056,22 +1078,18 @@ Support_User"></textarea>
       const ticket = $("ticket").value.trim();
       const author = $("author").value.trim();
       const reviewer = $("reviewer").value.trim();
+      const deployedBy = ($("deployedBy").value.trim() || author || "").trim();
       const result = $("result").value;
       const risk = $("risk").value;
+      const deployDate = $("deployDate").value || isoDate();
+      const generalComments = $("generalComments").value.trim();
 
-      const artifacts = bulletsFromTextarea($("artifacts").value);
       const mdSelected = selectedMetadataTypes();
       const mdOther = bulletsFromTextarea($("metaOther").value);
       const mdMembers = mdGetRows();
 
-      const keyRisks = bulletsFromTextarea($("keyRisks").value);
-      const followups = bulletsFromTextarea($("actionsTxt").value);
-      const qaNotes = bulletsFromTextarea($("qaNotes").value);
-
-      const preDeploy = bulletsFromTextarea($("preDeploy").value);
-      const preDeployComments = $("preDeployComments").value.trim();
-      const postDeploy = bulletsFromTextarea($("postDeploy").value);
-      const postDeployComments = $("postDeployComments").value.trim();
+      const preDeployText = buildDeployText($("preDeploy").value, $("preDeployComments").value);
+      const postDeployText = buildDeployText($("postDeploy").value, $("postDeployComments").value);
       const deployNotes = bulletsFromTextarea($("deployNotes").value);
 
       const sections = getChecklistSnapshot(mode);
@@ -1080,19 +1098,23 @@ Support_User"></textarea>
 
       const lines = [];
       lines.push(`h3. Salesforce Pair Review`);
+      lines.push(`*Date:* ${deployDate}`);
       if (ticket) lines.push(`*Ticket:* ${ticket}`);
       lines.push(`*Review Type:* ${mode === "light" ? "Light" : "Full"}`);
       lines.push(`*Result:* ${result}`);
       lines.push(`*Risk Level:* ${risk}`);
       if (author) lines.push(`*Author (Driver):* ${author}`);
       if (reviewer) lines.push(`*Reviewer (Navigator):* ${reviewer}`);
+      if (deployedBy) lines.push(`*Deployed By:* ${deployedBy}`);
       lines.push(`*Artifact Version:* ${ARTIFACT_VERSION}`);
       lines.push(`*Build Date:* ${buildDate}`);
       lines.push(`*Checklist Completion:* ${pct}%`);
 
-      lines.push(``);
-      lines.push(`h4. Artifacts Reviewed`);
-      lines.push(artifacts.length ? artifacts.join("\n") : `- None recorded (for now)`);
+      if (generalComments){
+        lines.push(``);
+        lines.push(`h4. General Comments`);
+        lines.push(generalComments.split("\n").map(s=>s.trim()).filter(Boolean).map(l=>l.startsWith("-")?l:`- ${l}`).join("\n"));
+      }
 
       lines.push(``);
       lines.push(`h4. Metadata Types to Deploy`);
@@ -1120,26 +1142,12 @@ Support_User"></textarea>
         }
       }
 
-      lines.push(`h4. Key Risks Identified`);
-      lines.push(keyRisks.length ? keyRisks.join("\n") : `- None recorded`);
+      lines.push(`h4. Pre-Deployment`);
+      lines.push(preDeployText ? `- ${preDeployText}` : `- Not provided`);
 
       lines.push(``);
-      lines.push(`h4. Follow-up Actions`);
-      lines.push(followups.length ? followups.join("\n") : `- None recorded`);
-
-      lines.push(``);
-      lines.push(`h4. QA Validation Notes`);
-      lines.push(qaNotes.length ? qaNotes.join("\n") : `- Not provided yet`);
-
-      lines.push(``);
-      lines.push(`h4. Pre-Deploy Checklist`);
-      lines.push(preDeploy.length ? preDeploy.join("\n") : `- Not provided`);
-      if (preDeployComments) lines.push(`- Comments: ${preDeployComments}`);
-
-      lines.push(``);
-      lines.push(`h4. Post-Deploy Checklist`);
-      lines.push(postDeploy.length ? postDeploy.join("\n") : `- Not provided`);
-      if (postDeployComments) lines.push(`- Comments: ${postDeployComments}`);
+      lines.push(`h4. Post-Deployment`);
+      lines.push(postDeployText ? `- ${postDeployText}` : `- Not provided`);
 
       lines.push(``);
       lines.push(`h4. Deployment Notes`);
@@ -1167,7 +1175,6 @@ Support_User"></textarea>
       toast("Jira summary generated ✅");
     }
 
-    // package.xml
     function escapeXml(s){
       return String(s)
         .replaceAll("&", "&amp;")
@@ -1195,30 +1202,54 @@ ${comment}<Package xmlns="http://soap.sforce.com/2006/04/metadata">
 </Package>`;
     }
 
-    // CSV
     function csvEscape(value){
       const s = String(value ?? "");
       if (/[",\n]/.test(s)) return `"${s.replaceAll('"', '""')}"`;
       return s;
     }
 
-    function generateCsv(){
+    function generateDeployCsv(){
+      const dateVal = $("deployDate").value || isoDate();
+      const ticket = $("ticket").value.trim();
+      const author = $("author").value.trim();
+      const deployedBy = ($("deployedBy").value.trim() || author || "").trim();
+      const risk = $("risk").value;
+      const status = "Scheduled";
+      const generalComments = ($("generalComments").value || "").trim();
+
+      const pre = buildDeployText($("preDeploy").value, $("preDeployComments").value);
+      const post = buildDeployText($("postDeploy").value, $("postDeployComments").value);
+
       const blocks = mdGetRows();
+
       const rows = [];
-      rows.push(["Type","Member"]);
+      rows.push([
+        "Date","Ticket","Metadata Type","Metadata Name","Deployed By",
+        "Pre-Deployment","Post-Deployment","Risk","Status","Comments"
+      ]);
+
       for (const b of blocks){
-        if (!b.type) continue;
+        const type = b.type || "";
+        const notes = (b.notes || "").trim();
+        const comments = [notes, generalComments].filter(Boolean).join(" | ");
+
         if (!b.members || b.members.length === 0){
-          rows.push([b.type,""]);
+          rows.push([dateVal, ticket, type, "", deployedBy, pre, post, risk, status, comments]);
         } else {
-          for (const m of b.members) rows.push([b.type, m]);
+          for (const m of b.members){
+            rows.push([dateVal, ticket, type, m, deployedBy, pre, post, risk, status, comments]);
+          }
         }
       }
+
+      if (blocks.length === 0){
+        rows.push([dateVal, ticket, "", "", deployedBy, pre, post, risk, status, generalComments]);
+      }
+
       return rows.map(r => r.map(csvEscape).join(",")).join("\n");
     }
 
-    // ===== Autosave =====
-    const STORAGE_KEY = "sf_pair_review_tool_gracep_v0_3_0";
+    const STORAGE_KEY = "sf_pair_review_tool_gracep_v0_4_0";
 
     function snapshotChecklistChecks(mode){
       const state = {};
@@ -1249,18 +1280,17 @@ ${comment}<Package xmlns="http://soap.sforce.com/2006/04/metadata">
     function collectState(){
       return {
         meta: {
+          deployDate: $("deployDate").value,
           ticket: $("ticket").value,
           reviewType: $("reviewType").value,
           author: $("author").value,
           reviewer: $("reviewer").value,
+          deployedBy: $("deployedBy").value,
           result: $("result").value,
           risk: $("risk").value,
-          artifacts: $("artifacts").value,
+          generalComments: $("generalComments").value,
           metaOther: $("metaOther").value,
           mdQuickPaste: $("mdQuickPaste").value,
-          keyRisks: $("keyRisks").value,
-          actionsTxt: $("actionsTxt").value,
-          qaNotes: $("qaNotes").value,
           preDeploy: $("preDeploy").value,
           preDeployComments: $("preDeployComments").value,
           postDeploy: $("postDeploy").value,
@@ -1279,18 +1309,17 @@ ${comment}<Package xmlns="http://soap.sforce.com/2006/04/metadata">
       if (!state) return;
 
       const m = state.meta || {};
+      $("deployDate").value = m.deployDate || isoDate();
       $("ticket").value = m.ticket || "";
       $("reviewType").value = m.reviewType || "full";
       $("author").value = m.author || "";
       $("reviewer").value = m.reviewer || "";
+      $("deployedBy").value = m.deployedBy || "";
       $("result").value = m.result || "Approved";
       $("risk").value = m.risk || "Low";
-      $("artifacts").value = m.artifacts || "";
+      $("generalComments").value = m.generalComments || "";
       $("metaOther").value = m.metaOther || "";
       $("mdQuickPaste").value = m.mdQuickPaste || "";
-      $("keyRisks").value = m.keyRisks || "";
-      $("actionsTxt").value = m.actionsTxt || "";
-      $("qaNotes").value = m.qaNotes || "";
       $("preDeploy").value = m.preDeploy || "";
       $("preDeployComments").value = m.preDeployComments || "";
       $("postDeploy").value = m.postDeploy || "";
@@ -1309,14 +1338,12 @@ ${comment}<Package xmlns="http://soap.sforce.com/2006/04/metadata">
         if (ta) ta.value = checks[idBase].comment || "";
       }
 
-      // Types selected
       const sel = new Set(state.mdTypesSelected || []);
       document.querySelectorAll('input[type="checkbox"][data-md]').forEach(b => {
         b.checked = sel.has(b.getAttribute("data-md"));
       });
       updateMetadataCount();
 
-      // Members rows
       $("mdRows").innerHTML = "";
       const rows = state.mdMembersRows || [];
       for (const r of rows){
@@ -1348,7 +1375,6 @@ ${comment}<Package xmlns="http://soap.sforce.com/2006/04/metadata">
       location.reload();
     }
 
-    // ===== Init =====
     (function init(){
       const bd = isoDate();
       $("versionTag").textContent = `v${ARTIFACT_VERSION}`;
@@ -1363,18 +1389,17 @@ ${comment}<Package xmlns="http://soap.sforce.com/2006/04/metadata">
       renderMetadataList(METADATA_TYPES);
       updateMetadataCount();
 
+      $("deployDate").value = bd;
+
       load();
 
-      // default member row if nothing exists yet
       if (!$("mdRows").children.length) mdAddRow({ type: "Flow" });
 
-      // Bindings
       $("reviewType").addEventListener("change", (e) => setMode(e.target.value));
 
       [
-        "ticket","author","reviewer","result","risk",
-        "artifacts","metaOther","mdQuickPaste",
-        "keyRisks","actionsTxt","qaNotes",
+        "deployDate","ticket","author","reviewer","deployedBy","result","risk",
+        "generalComments","metaOther","mdQuickPaste",
         "preDeploy","preDeployComments",
         "postDeploy","postDeployComments",
         "deployNotes","apiVersion","pkgNotes"
@@ -1406,8 +1431,8 @@ ${comment}<Package xmlns="http://soap.sforce.com/2006/04/metadata">
       $("copyPkgBtn").addEventListener("click", () => copyText($("pkgOutput").value, "package.xml copied 📋"));
 
       $("csvBtn").addEventListener("click", () => {
-        const csv = generateCsv();
-        downloadTextFile(`metadata-deploy-${isoDate()}.csv`, csv, "text/csv");
+        const csv = generateDeployCsv();
+        downloadTextFile(`deploy-log-${isoDate()}.csv`, csv, "text/csv");
         toast("CSV exported ✅");
       });
 
@@ -1415,7 +1440,6 @@ ${comment}<Package xmlns="http://soap.sforce.com/2006/04/metadata">
       $("collapseAllBtn").addEventListener("click", () => setAllDetails(false));
       $("resetBtn").addEventListener("click", resetAll);
 
-      // Ensure Step 1 -> Step 2 sync on load
       syncMembersRowsFromSelectedTypes();
       setMode($("reviewType").value);
     })();
