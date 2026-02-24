@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Invisible signature + versioning (Option B) -->
+  <meta name="author" content="GraceP" />
+  <meta name="artifact-credits" content="Developed/Designed by GraceP" />
+  <meta name="artifact-name" content="Salesforce Estimation Tool" />
+  <meta name="artifact-version" content="0.1.2" />
+  <meta name="artifact-build-date" content="" />
+
+  <title>Salesforce Estimation Tool (Effort 0–5) → Suggested Points</title>
+
+  <style>
+    :root{
+      --bg:#0b0f14; --text:#e5e7eb; --muted:#9ca3af;
+      --border:#243042; --good:#34d399; --warn:#fbbf24; --bad:#fb7185;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0; font-family:var(--sans);
+      background:radial-gradient(1200px 800px at 20% -20%, #1a2a44, transparent 55%),
+                 radial-gradient(900px 700px at 120% 10%, #202a3a, transparent 50%),
+                 var(--bg);
+      color:var(--text);
+    }
+    header{
+      padding:18px 18px 10px;
+      border-bottom:1px solid var(--border);
+      position:sticky; top:0; background:rgba(11,15,20,.88); backdrop-filter: blur(8px);
+      z-index:10;
+    }
+    .wrap{ max-width:1100px; margin:0 auto; padding:14px 18px 36px; }
+    h1{
+      margin:0 0 6px; font-size:16px; letter-spacing:.2px;
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    }
+    .tag{
+      font-family:var(--mono); font-size:12px; padding:3px 8px; border:1px solid var(--border);
+      border-radius:999px; color:var(--muted); background:rgba(17,24,38,.7);
+      white-space:nowrap;
+    }
+    .stack{ display:flex; flex-direction:column; gap:12px; }
+    .card{
+      border:1px solid var(--border); border-radius:14px; background:rgba(17,24,38,.72);
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+      overflow:hidden;
+    }
+    .card h2{
+      margin:0; padding:12px 14px; font-size:13px; font-family:var(--mono);
+      color:#cbd5e1; background:rgba(15,23,34,.7); border-bottom:1px solid var(--border);
+      display:flex; justify-content:space-between; align-items:center; gap:10px;
+    }
+    .card .body{ padding:12px 14px; }
+    .tiny{ font-size:11px; color:var(--muted); font-family:var(--mono); margin-top:6px; opacity:.95; }
+
+    .meterRow{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+      font-family:var(--mono); font-size:12px; color:var(--muted);
+    }
+    .meterRow b{ color:var(--text); }
+    .pill{
+      border:1px solid rgba(36,48,66,.75);
+      border-radius:999px;
+      padding:4px 10px;
+      background:rgba(11,15,20,.35);
+      color:var(--muted);
+      font-family:var(--mono);
+      font-size:12px;
+    }
+
+    .divider{ height:1px; background:rgba(36,48,66,.75); margin:12px 0; }
+
+    button{
+      border:1px solid var(--border); border-radius:12px; padding:10px 12px;
+      background:rgba(96,165,250,.15); color:var(--text); cursor:pointer;
+      font-family:var(--mono); font-size:12px;
+    }
+    button:hover{ border-color: rgba(96,165,250,.55); }
+    .btn-good{ background:rgba(52,211,153,.15); }
+    .btn-warn{ background:rgba(251,191,36,.12); }
+    .btn-ghost{ background:rgba(15,23,34,.4); }
+
+    .btnRow{
+      display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+    }
+
+    .toast{
+      position:fixed; right:16px; bottom:16px; padding:10px 12px; border-radius:12px;
+      background:rgba(17,24,38,.9); border:1px solid var(--border); color:var(--text);
+      font-family:var(--mono); font-size:12px; display:none;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+
+    .warnBox{
+      border:1px solid rgba(251,191,36,.35);
+      background:rgba(251,191,36,.08);
+      border-radius:12px;
+      padding:10px 12px;
+    }
+    .warnBox b{ color:var(--warn); font-family:var(--mono); font-weight:600; }
+    .warnBox ul{ margin:8px 0 0 18px; color:var(--muted); }
+    .warnBox li{ margin:6px 0; font-family:var(--mono); font-size:12px; }
+
+    /* 2-column grid for categories */
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+    }
+    @media (max-width: 980px){
+      .grid2{ grid-template-columns: 1fr; }
+    }
+
+    /* Category panel */
+    .panel{
+      border:1px solid rgba(36,48,66,.75);
+      border-radius:14px;
+      background:rgba(15,23,34,.55);
+      overflow:hidden;
+    }
+    .panelHead{
+      padding:10px 12px;
+      border-bottom:1px solid rgba(36,48,66,.65);
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      font-family:var(--mono); font-size:12px; color:#cbd5e1;
+      background:rgba(11,15,20,.25);
+    }
+    .badge{
+      font-size:11px; padding:2px 8px; border-radius:999px;
+      border:1px solid var(--border); color:var(--muted); background:rgba(17,24,38,.55);
+      font-family:var(--mono); white-space:nowrap;
+    }
+
+    /* Subheader and items */
+    .subHead{
+      padding:10px 12px;
+      font-family:var(--mono);
+      font-size:12px;
+      color:#cbd5e1;
+      border-top:1px solid rgba(36,48,66,.55);
+      background:rgba(11,15,20,.10);
+    }
+    .item{
+      border-top:1px solid rgba(36,48,66,.45);
+      padding:10px 12px;
+      display:grid;
+      grid-template-columns: 1fr 240px;
+      gap:12px;
+      align-items:center;
+    }
+    @media (max-width: 980px){
+      .item{ grid-template-columns: 1fr; }
+    }
+    .itemTitle{
+      font-size:12px; color:#e2e8f0;
+      line-height:1.35;
+    }
+    .controls{
+      display:flex; gap:10px; align-items:center; justify-content:flex-end; flex-wrap:wrap;
+      font-family:var(--mono);
+    }
+    .controls input[type="range"]{ width:160px; }
+    .scoreBox{
+      width:52px; text-align:center; font-family:var(--mono);
+      border:1px solid rgba(36,48,66,.75);
+      border-radius:10px; padding:6px 8px;
+      background:rgba(11,15,20,.35);
+      color:var(--text);
+    }
+
+    textarea{
+      width:100%;
+      border:1px solid var(--border);
+      border-radius:10px;
+      background:rgba(15,23,34,.7);
+      color:var(--text);
+      padding:10px 10px;
+      outline:none;
+      min-height:90px;
+      resize:vertical;
+      font-family:var(--mono);
+      font-size:12px;
+      line-height:1.35;
+    }
+
+    .hidden { display:none !important; }
+    code{ font-family: var(--mono); }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="wrap">
+      <h1>
+        Salesforce Estimation Tool (Effort 0–5) → Suggested Story Points
+        <span class="tag" id="versionTag">v0.1.2</span>
+        <span class="tag" id="buildDateTag">build: yyyy-mm-dd</span>
+        <span class="tag">by GraceP</span>
+      </h1>
+      <div class="meterRow">
+        Avg (items scored &gt; 0): <b id="avgGlobal">0.00</b>
+        <span class="pill">Suggested points: <b id="suggestedPoints">?</b></span>
+        <span class="pill">Items scored: <b id="itemsScored">0</b>/<span id="itemsTotal">0</span></span>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="stack">
+
+      <div class="card">
+        <h2>How to use <span class="badge">effort guide</span></h2>
+        <div class="body">
+          <div class="warnBox">
+            <b>Important:</b>
+            <ul>
+              <li><b>0–5 means effort</b> (0 = not applicable / not evaluated, 5 = highest effort).</li>
+              <li>Not every ticket must go through every section/item. Score only what applies.</li>
+              <li>Scores are not absolute. Use discretion and human judgment.</li>
+            </ul>
+          </div>
+
+          <!-- Hidden header inputs (per your request) -->
+          <div class="hidden" id="metaHeader">
+            <div class="divider"></div>
+            <label>Ticket / Story</label>
+            <input id="ticket" type="text" />
+            <label>Estimator</label>
+            <input id="estimator" type="text" />
+            <label>Notes</label>
+            <textarea id="notes"></textarea>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="tiny">
+            Fixed mapping (avg effort → points). This is a guide, not a court ruling.
+          </div>
+
+          <div class="tiny" style="margin-top:8px; line-height:1.5;">
+            <span class="pill">avg ≤ 0.9 → 1</span>
+            <span class="pill">≤ 1.9 → 2</span>
+            <span class="pill">≤ 2.9 → 3</span>
+            <span class="pill">≤ 3.9 → 5</span>
+            <span class="pill">≤ 4.4 → 8</span>
+            <span class="pill">≤ 5.0 → 13</span>
+          </div>
+
+          <div class="btnRow" style="margin-top:10px;">
+            <button class="btn-ghost" type="button" id="resetScoresBtn">Reset Scores</button>
+            <button class="btn-warn" type="button" id="expandAllBtn">Expand All</button>
+            <button class="btn-warn" type="button" id="collapseAllBtn">Collapse All</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Estimation grid <span class="badge">2 columns</span></h2>
+        <div class="body">
+          <div class="grid2" id="sectionsHost"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Outputs <span class="badge">very concise</span></h2>
+        <div class="body">
+          <div class="btnRow" style="margin-top:4px;">
+            <button class="btn-good" type="button" id="genSummaryBtn">Generate Summary</button>
+            <button class="btn-ghost" type="button" id="copySummaryBtn">Copy Summary</button>
+          </div>
+
+          <label style="margin-top:10px; display:block; font-family:var(--mono); color:var(--muted); font-size:12px;">
+            Summary
+          </label>
+          <textarea id="summaryOut" readonly placeholder="Click Generate Summary"></textarea>
+
+          <div class="tiny">Format: avg + suggested points + section averages. Nothing else.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const ARTIFACT_VERSION = "0.1.2";
+    const STORAGE_KEY = "sf_estimation_tool_gracep_v0_1_2";
+
+    const $ = (id) => document.getElementById(id);
+    function pad(n){ return String(n).padStart(2,"0"); }
+    function isoDate(){
+      const d = new Date();
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    }
+
+    function toast(msg){
+      const t = $("toast");
+      t.textContent = msg;
+      t.style.display = "block";
+      setTimeout(() => t.style.display = "none", 1400);
+    }
+
+    async function copyText(text, okMsg){
+      if (!text.trim()){
+        toast("Nothing to copy yet 🙂");
+        return;
+      }
+      try{
+        await navigator.clipboard.writeText(text);
+        toast(okMsg || "Copied 📋");
+      }catch(e){
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+        toast(okMsg || "Copied (fallback) 📋");
+      }
+    }
+
+    function setAllPanelsOpen(open){
+      document.querySelectorAll('details[data-panel="true"]').forEach(d => d.open = open);
+    }
+
+    // Data (categories + items)
+    const GRID = [
+      {
+        key:"complexity",
+        title:"COMPLEXITY",
+        sub:[
+          { h:"Architecture", items:[
+            "New architectural patterns needed (async, platform events, streaming API)?",
+            "How many objects, components, or external systems are touched?",
+            "Governor limit exposure (SOQL, DML, CPU, heap)?"
+          ]},
+          { h:"Code", items:[
+            "How branchy/rule-heavy is the logic?",
+            "Net-new vs modify existing Apex/Flow/LWC?",
+            "Regression risk in existing automations?"
+          ]},
+          { h:"Data", items:[
+            "Complex transformations or mappings?",
+            "Edge cases (nulls, bulk, mixed DML)?"
+          ]},
+          { h:"Unknowns", items:[
+            "Unknown platform behaviours or limits?"
+          ]}
+        ]
+      },
+      {
+        key:"dependencies",
+        title:"DEPENDENCIES",
+        sub:[
+          { h:"Team", items:[
+            "Waiting on another team before dev can start?",
+            "Dependencies done, or still in flight?"
+          ]},
+          { h:"Stakeholders", items:[
+            "Stakeholder sign-off required before dev begins?",
+            "Security/compliance/security review needed?"
+          ]},
+          { h:"Technical", items:[
+            "Schema changes needed (objects/fields/relationships)?",
+            "Integrations or AppExchange packages involved?"
+          ]},
+          { h:"Sequencing", items:[
+            "Blocks or is blocked by another story?",
+            "Sequential steps vs parallel work?"
+          ]}
+        ]
+      },
+      {
+        key:"risk",
+        title:"RISK",
+        sub:[
+          { h:"Requirements", items:[
+            "Requirements fully defined (AC/mockups/data model)?",
+            "Documentation/SMEs accessible?",
+            "Scope creep likely during sprint?"
+          ]},
+          { h:"Technical", items:[
+            "Significant rework likely after dev starts?",
+            "Data migration/CPQ/backward-compat concerns?",
+            "Team has the right Salesforce domain knowledge?"
+          ]},
+          { h:"Business", items:[
+            "Business criticality (revenue/compliance/user-facing)?",
+            "Impact if this slips a release?"
+          ]}
+        ]
+      },
+      {
+        key:"testing",
+        title:"TESTING",
+        sub:[
+          { h:"Automated", items:[
+            "Apex test coverage effort?",
+            "Integration tests needed (callouts/events/external systems)?",
+            "E2E or UI testing required?",
+            "Callout mocking needed?"
+          ]},
+          { h:"Non-Functional", items:[
+            "Bulk/performance testing needed?",
+            "Security model validation (FLS/CRUD/sharing)?"
+          ]},
+          { h:"Manual", items:[
+            "Complex test data setup?",
+            "Many scenarios across profiles/record types/orgs?",
+            "Sandbox regression required before deploy?"
+          ]}
+        ]
+      },
+      {
+        key:"scope",
+        title:"SCOPE",
+        sub:[
+          { h:"Stories", items:[
+            "How many sub-tasks are bundled in?",
+            "Multiple personas/profiles/record types?",
+            "Anything that should be split or deferred?"
+          ]},
+          { h:"Config", items:[
+            "Declarative config volume (flows/validation/assignment rules)?",
+            "Lightning pages/components affected?",
+            "Reports/dashboards/list views required?",
+            "Permission changes required?"
+          ]},
+          { h:"Delivery", items:[
+            "Deployment runbook or technical docs needed?"
+          ]}
+        ]
+      },
+      {
+        key:"collaboration",
+        title:"COLLABORATION",
+        sub:[
+          { h:"Team", items:[
+            "How many contributors (admin/dev/BA/architect)?",
+            "Specialists needed (CPQ/Experience/MC)?",
+            "UX/design involvement needed?"
+          ]},
+          { h:"Stakeholders", items:[
+            "PO needed throughout vs just review?",
+            "Release manager coordination needed?"
+          ]},
+          { h:"Communication", items:[
+            "How many syncs/demos/reviews expected?",
+            "Heavy async comms expected?"
+          ]}
+        ]
+      }
+    ];
+
+    // Fixed mapping: avg effort (0–5) => points
+    const FIXED_MAPPING = [
+      { maxAvg: 0.9, points: 1 },
+      { maxAvg: 1.9, points: 2 },
+      { maxAvg: 2.9, points: 3 },
+      { maxAvg: 3.9, points: 5 },
+      { maxAvg: 4.4, points: 8 },
+      { maxAvg: 5.0, points: 13 }
+    ];
+
+    function suggestedPointsFromAvg(avgScore){
+      for (const rule of FIXED_MAPPING){
+        if (avgScore <= rule.maxAvg) return rule.points;
+      }
+      return FIXED_MAPPING[FIXED_MAPPING.length-1].points;
+    }
+
+    function renderPanels(){
+      const host = $("sectionsHost");
+      host.innerHTML = "";
+      let totalItems = 0;
+
+      GRID.forEach((sec) => {
+        const panel = document.createElement("div");
+        panel.className = "panel";
+
+        // Use details so Expand/Collapse works, but panels still show as tiles.
+        panel.innerHTML = `
+          <details data-panel="true" open>
+            <summary class="panelHead">
+              <span>${sec.title}</span>
+              <span class="badge">avg: <span id="avg_${sec.key}">0.00</span></span>
+            </summary>
+            <div id="sec_${sec.key}"></div>
+          </details>
+        `;
+        host.appendChild(panel);
+
+        const secHost = panel.querySelector(`#sec_${sec.key}`);
+        sec.sub.forEach((sub, subIdx) => {
+          const subHead = document.createElement("div");
+          subHead.className = "subHead";
+          subHead.textContent = `// ${sub.h}`;
+          secHost.appendChild(subHead);
+
+          sub.items.forEach((text, iIdx) => {
+            totalItems++;
+            const id = `${sec.key}__${subIdx}__${iIdx}`;
+            const item = document.createElement("div");
+            item.className = "item";
+            item.innerHTML = `
+              <div class="itemTitle">${text}</div>
+              <div class="controls">
+                <input type="range" min="0" max="5" step="1" value="0" id="rng_${id}" />
+                <div class="scoreBox" id="box_${id}">0</div>
+                <select id="sel_${id}" title="Quick select">
+                  <option value="0">0</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                </select>
+              </div>
+            `;
+            secHost.appendChild(item);
+
+            setTimeout(() => {
+              const rng = $(`rng_${id}`);
+              const box = $(`box_${id}`);
+              const sel = $(`sel_${id}`);
+
+              const sync = (v) => {
+                const n = parseInt(v,10);
+                rng.value = String(n);
+                sel.value = String(n);
+                box.textContent = String(n);
+                recalc();
+                save();
+              };
+
+              rng.addEventListener("input", e => sync(e.target.value));
+              sel.addEventListener("change", e => sync(e.target.value));
+            }, 0);
+          });
+        });
+      });
+
+      $("itemsTotal").textContent = String(totalItems);
+    }
+
+    function getAllScores(){
+      const scores = [];
+      GRID.forEach(sec => {
+        sec.sub.forEach((sub, subIdx) => {
+          sub.items.forEach((_, iIdx) => {
+            const id = `${sec.key}__${subIdx}__${iIdx}`;
+            const v = parseInt(($(`rng_${id}`)?.value ?? "0"), 10);
+            scores.push({ sec: sec.key, id, v: Number.isFinite(v) ? v : 0 });
+          });
+        });
+      });
+      return scores;
+    }
+
+    function avg(arr){
+      if (!arr.length) return 0;
+      const s = arr.reduce((a,b)=>a+b,0);
+      return s / arr.length;
+    }
+
+    function recalc(){
+      const all = getAllScores();
+
+      // Only items with score > 0 are included in averages
+      const scored = all.filter(x => x.v > 0);
+      $("itemsScored").textContent = String(scored.length);
+
+      const globalAvg = scored.length ? avg(scored.map(x=>x.v)) : 0;
+      $("avgGlobal").textContent = globalAvg.toFixed(2);
+      $("suggestedPoints").textContent = String(suggestedPointsFromAvg(globalAvg));
+
+      GRID.forEach(sec => {
+        const secScored = scored.filter(x=>x.sec === sec.key);
+        const secAvg = secScored.length ? avg(secScored.map(x=>x.v)) : 0;
+        $(`avg_${sec.key}`).textContent = secAvg.toFixed(2);
+      });
+    }
+
+    function genSummary(){
+      const all = getAllScores();
+      const scored = all.filter(x => x.v > 0);
+      const globalAvg = scored.length ? avg(scored.map(x=>x.v)) : 0;
+      const points = suggestedPointsFromAvg(globalAvg);
+
+      // VERY concise summary (no ticket/name/notes)
+      // Format: Points + Avg + per-section avgs
+      const parts = [];
+      parts.push(`Suggested Points: ${points}`);
+      parts.push(`Avg (scored > 0): ${globalAvg.toFixed(2)}`);
+      parts.push(`Scored Items: ${scored.length}/${all.length}`);
+
+      const secBits = GRID.map(sec => {
+        const secScored = scored.filter(x=>x.sec === sec.key);
+        const secAvg = secScored.length ? avg(secScored.map(x=>x.v)) : 0;
+        return `${sec.title} ${secAvg.toFixed(2)}`;
+      });
+
+      parts.push(`By Section: ${secBits.join(" | ")}`);
+
+      $("summaryOut").value = parts.join("\n");
+      toast("Summary generated ✅");
+      save();
+    }
+
+    function resetScores(){
+      if (!confirm("Reset all item scores to 0?")) return;
+      GRID.forEach(sec => {
+        sec.sub.forEach((sub, subIdx) => {
+          sub.items.forEach((_, iIdx) => {
+            const id = `${sec.key}__${subIdx}__${iIdx}`;
+            const rng = $(`rng_${id}`);
+            const sel = $(`sel_${id}`);
+            const box = $(`box_${id}`);
+            if (rng) rng.value = "0";
+            if (sel) sel.value = "0";
+            if (box) box.textContent = "0";
+          });
+        });
+      });
+      recalc();
+      save();
+      toast("Scores reset 🧹");
+    }
+
+    function collectState(){
+      const scores = {};
+      GRID.forEach(sec => {
+        sec.sub.forEach((sub, subIdx) => {
+          sub.items.forEach((_, iIdx) => {
+            const id = `${sec.key}__${subIdx}__${iIdx}`;
+            scores[id] = parseInt(($(`rng_${id}`)?.value ?? "0"), 10) || 0;
+          });
+        });
+      });
+
+      return {
+        scores,
+        summary: $("summaryOut").value
+      };
+    }
+
+    function applyState(state){
+      if (!state) return;
+
+      const scores = state.scores || {};
+      Object.keys(scores).forEach(id => {
+        const v = String(scores[id] ?? 0);
+        const rng = $(`rng_${id}`);
+        const sel = $(`sel_${id}`);
+        const box = $(`box_${id}`);
+        if (rng) rng.value = v;
+        if (sel) sel.value = v;
+        if (box) box.textContent = v;
+      });
+
+      $("summaryOut").value = state.summary || "";
+      recalc();
+    }
+
+    function save(){
+      try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(collectState())); }catch(e){}
+    }
+
+    function load(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        applyState(JSON.parse(raw));
+      }catch(e){}
+    }
+
+    (function init(){
+      const bd = isoDate();
+      $("versionTag").textContent = `v${ARTIFACT_VERSION}`;
+      $("buildDateTag").textContent = `build: ${bd}`;
+
+      const metaBuild = document.querySelector('meta[name="artifact-build-date"]');
+      if (metaBuild) metaBuild.setAttribute("content", bd);
+      const metaVer = document.querySelector('meta[name="artifact-version"]');
+      if (metaVer) metaVer.setAttribute("content", ARTIFACT_VERSION);
+
+      renderPanels();
+      load();
+      recalc();
+
+      $("resetScoresBtn").addEventListener("click", resetScores);
+      $("expandAllBtn").addEventListener("click", () => setAllPanelsOpen(true));
+      $("collapseAllBtn").addEventListener("click", () => setAllPanelsOpen(false));
+      $("genSummaryBtn").addEventListener("click", genSummary);
+      $("copySummaryBtn").addEventListener("click", () => copyText($("summaryOut").value, "Summary copied 📋"));
+    })();
+  </script>
+</body>
+</html>
