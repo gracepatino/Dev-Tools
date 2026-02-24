@@ -1,0 +1,1424 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Option B: invisible signature + versioning -->
+  <meta name="author" content="GraceP" />
+  <meta name="artifact-credits" content="Developed/Designed by GraceP" />
+  <meta name="artifact-version" content="0.3.0" />
+  <meta name="artifact-build-date" content="" />
+
+  <title>Salesforce Pair Review → Jira Summary + package.xml + CSV (GraceP)</title>
+
+  <style>
+    :root{
+      --bg:#0b0f14; --text:#e5e7eb; --muted:#9ca3af;
+      --border:#243042; --good:#34d399; --warn:#fbbf24; --bad:#fb7185;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0; font-family:var(--sans);
+      background:radial-gradient(1200px 800px at 20% -20%, #1a2a44, transparent 55%),
+                 radial-gradient(900px 700px at 120% 10%, #202a3a, transparent 50%),
+                 var(--bg);
+      color:var(--text);
+    }
+    header{
+      padding:18px 18px 10px;
+      border-bottom:1px solid var(--border);
+      position:sticky; top:0; background:rgba(11,15,20,.88); backdrop-filter: blur(8px);
+      z-index:10;
+    }
+    .wrap{ max-width:1200px; margin:0 auto; padding:14px 18px 36px; }
+    h1{
+      margin:0 0 6px; font-size:16px; letter-spacing:.2px;
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    }
+    .tag{
+      font-family:var(--mono); font-size:12px; padding:3px 8px; border:1px solid var(--border);
+      border-radius:999px; color:var(--muted); background:rgba(17,24,38,.7);
+      white-space:nowrap;
+    }
+    .grid{
+      display:grid; grid-template-columns: 1fr 1fr; gap:12px; align-items:start;
+    }
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+      header{ position:static; }
+    }
+    .card{
+      border:1px solid var(--border); border-radius:14px; background:rgba(17,24,38,.72);
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+      overflow:hidden;
+    }
+    .card h2{
+      margin:0; padding:12px 14px; font-size:13px; font-family:var(--mono);
+      color:#cbd5e1; background:rgba(15,23,34,.7); border-bottom:1px solid var(--border);
+      display:flex; justify-content:space-between; align-items:center;
+      gap:10px;
+    }
+    .card .body{ padding:12px 14px; }
+    label{ display:block; font-size:12px; color:var(--muted); margin:10px 0 6px; }
+    input[type="text"], select, textarea{
+      width:100%; border:1px solid var(--border); border-radius:10px;
+      background:rgba(15,23,34,.7); color:var(--text); padding:10px 10px;
+      outline:none;
+    }
+    textarea{ min-height:88px; resize:vertical; font-family:var(--mono); font-size:12px; line-height:1.35; }
+    .row{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    @media (max-width: 520px){ .row{ grid-template-columns:1fr; } }
+
+    details{
+      border:1px solid var(--border);
+      border-radius:12px; background:rgba(15,23,34,.55); margin:10px 0;
+      overflow:hidden;
+    }
+    summary{
+      cursor:pointer; list-style:none; padding:10px 12px;
+      font-family:var(--mono); font-size:12px; color:#cbd5e1;
+      display:flex; justify-content:space-between; align-items:center;
+      border-bottom:1px solid rgba(36,48,66,.65);
+      user-select:none;
+      gap:10px;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    .badge{
+      font-size:11px; padding:2px 8px; border-radius:999px;
+      border:1px solid var(--border); color:var(--muted); background:rgba(17,24,38,.55);
+      font-family:var(--mono);
+      white-space:nowrap;
+    }
+    .tiny{
+      font-size:11px; color:var(--muted); font-family:var(--mono);
+      margin-top:6px; opacity:.95;
+    }
+
+    .table{
+      width:100%; border-collapse: collapse; font-size:12px;
+    }
+    .table th, .table td{
+      border-top:1px solid rgba(36,48,66,.65);
+      padding:8px 10px; vertical-align:top;
+    }
+    .table th{
+      text-align:left; font-family:var(--mono); color:#cbd5e1; background:rgba(17,24,38,.45);
+    }
+    .checkcell{ width:86px; white-space:nowrap; }
+    .checkcell input{ transform: translateY(1px); }
+    .commentcell textarea{
+      min-height:48px; font-family:var(--mono); font-size:12px; padding:8px;
+      background:rgba(11,15,20,.55);
+    }
+
+    button{
+      border:1px solid var(--border); border-radius:12px; padding:10px 12px;
+      background:rgba(96,165,250,.15); color:var(--text); cursor:pointer;
+      font-family:var(--mono); font-size:12px;
+    }
+    button:hover{ border-color: rgba(96,165,250,.55); }
+    .btn-good{ background:rgba(52,211,153,.15); }
+    .btn-warn{ background:rgba(251,191,36,.12); }
+    .btn-bad{ background:rgba(251,113,133,.12); }
+    .btn-ghost{ background:rgba(15,23,34,.4); }
+
+    .actions{ display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+    .btnRow{
+      display:flex; flex-wrap:wrap; gap:10px; align-items:center; width:100%;
+    }
+
+    .toast{
+      position:fixed; right:16px; bottom:16px; padding:10px 12px; border-radius:12px;
+      background:rgba(17,24,38,.9); border:1px solid var(--border); color:var(--text);
+      font-family:var(--mono); font-size:12px; display:none;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    .score{
+      display:flex; gap:10px; align-items:center; color:var(--muted); font-family:var(--mono); font-size:12px;
+      flex-wrap:wrap;
+    }
+    .score b{ color:var(--text); }
+    .divider{ height:1px; background:rgba(36,48,66,.75); margin:12px 0; }
+
+    /* Metadata picker */
+    .metaBox{
+      border:1px solid rgba(36,48,66,.75);
+      border-radius:12px;
+      background:rgba(11,15,20,.35);
+      padding:10px;
+    }
+    .metaHeader{
+      display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap;
+      margin-bottom:10px;
+    }
+    .metaHeader input{
+      flex:1; min-width:220px; font-family:var(--mono); font-size:12px;
+    }
+    .metaList{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap:8px 12px;
+      max-height:240px;
+      overflow:auto;
+      padding-right:6px;
+    }
+    @media (max-width: 520px){
+      .metaList{ grid-template-columns: 1fr; }
+    }
+    .metaItem{
+      display:flex; gap:8px; align-items:center;
+      border:1px solid rgba(36,48,66,.55);
+      border-radius:10px;
+      padding:8px 10px;
+      background:rgba(15,23,34,.45);
+      font-family:var(--mono);
+      font-size:12px;
+      color:#cbd5e1;
+    }
+    .metaItem input{ margin:0; transform: translateY(1px); }
+
+    /* Members rows */
+    .mdRow{
+      border:1px solid rgba(36,48,66,.55);
+      border-radius:12px;
+      background:rgba(15,23,34,.35);
+      padding:10px;
+      margin-top:10px;
+    }
+    .mdRowTop{
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap:10px;
+      align-items:end;
+    }
+    .mdRowTop select{ font-family: var(--mono); font-size:12px; }
+    .mdRowGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      margin-top:10px;
+    }
+    @media (max-width: 820px){
+      .mdRowGrid{ grid-template-columns:1fr; }
+    }
+    .mdRow textarea{ min-height:70px; }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="wrap">
+      <h1>
+        Salesforce Pair Review → Jira Summary + package.xml + CSV
+        <span class="tag" id="modeTag">MODE: FULL</span>
+        <span class="tag" id="versionTag">v0.3.0</span>
+        <span class="tag" id="buildDateTag">build: yyyy-mm-dd</span>
+        <span class="tag">by GraceP</span>
+      </h1>
+      <div class="score" id="completionScore">Checklist completion: <b>0%</b> (future maintainers thank you)</div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="grid">
+
+      <!-- Left -->
+      <div class="card">
+        <h2>Step 0. meta.json <span class="badge">start here</span></h2>
+        <div class="body">
+          <div class="tiny">Steps: 1) Types → 2) Members → 3) Jira → 4) package.xml → 5) CSV</div>
+
+          <div class="row">
+            <div>
+              <label>Ticket (optional)</label>
+              <input type="text" id="ticket" placeholder="e.g., OCRM-1234" />
+            </div>
+            <div>
+              <label>Review Type</label>
+              <select id="reviewType">
+                <option value="full">Full (30–45 min)</option>
+                <option value="light">Light (10–15 min)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label>Author (Driver)</label>
+              <input type="text" id="author" placeholder="Name" />
+            </div>
+            <div>
+              <label>Reviewer (Navigator)</label>
+              <input type="text" id="reviewer" placeholder="Name" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label>Result</label>
+              <select id="result">
+                <option value="Approved">✅ Approved</option>
+                <option value="Approved with fixes">⚠️ Approved with fixes</option>
+                <option value="Changes required">❌ Changes required</option>
+              </select>
+            </div>
+            <div>
+              <label>Risk Level</label>
+              <select id="risk">
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High (bring snacks)</option>
+              </select>
+            </div>
+          </div>
+
+          <label>Artifacts Reviewed (optional, future-proof)</label>
+          <textarea id="artifacts" placeholder="- Commit/Tag: ...&#10;- Branch: ...&#10;- Links (doc/mock): ...&#10;- Notes: ..."></textarea>
+
+          <label>Step 1. Select Metadata Types to Deploy (package-style)</label>
+          <div class="tiny">Select types first. Matching rows will auto-appear in Step 2.</div>
+          <div class="metaBox">
+            <div class="metaHeader">
+              <input type="text" id="metaSearch" placeholder="Search metadata types (Flow, ApexClass, PermissionSet)..." />
+              <span class="badge" id="metaCount">0 selected</span>
+              <button class="btn-ghost" type="button" id="metaSelectCommonBtn">Select Common</button>
+              <button class="btn-ghost" type="button" id="metaClearBtn">Clear</button>
+            </div>
+            <div class="metaList" id="metaList"></div>
+
+            <label style="margin-top:10px;">Other metadata types / notes</label>
+            <textarea id="metaOther" placeholder="- Example: WaveTemplateBundle&#10;- Example: DigitalExperienceBundle"></textarea>
+          </div>
+
+          <label>Step 2. List Specific Metadata Members to Deploy (components)</label>
+          <div class="tiny">Add exact API names. One per line (or comma-separated). This drives package.xml + CSV.</div>
+
+          <div class="metaBox">
+            <div class="metaHeader">
+              <span class="badge">Type + members</span>
+              <button class="btn-ghost" type="button" id="mdAddSelectedBtn">Add selected types here</button>
+              <button class="btn-ghost" type="button" id="mdAddRowBtn">+ Add Type</button>
+            </div>
+
+            <div id="mdRows"></div>
+
+            <label style="margin-top:10px;">Quick paste (optional)</label>
+            <textarea id="mdQuickPaste" placeholder="Flow: CaseTriggerFlow, Contact_Onboarding
+ApexClass: JwtService, SharePointClient
+PermissionSet: Support_User"></textarea>
+
+            <div class="btnRow" style="margin-top:10px;">
+              <button class="btn-ghost" type="button" id="mdParsePasteBtn">Parse Quick Paste</button>
+              <button class="btn-ghost" type="button" id="mdClearRowsBtn">Clear Members</button>
+            </div>
+          </div>
+
+          <label>Key Risks Identified (bullets)</label>
+          <textarea id="keyRisks" placeholder="- Example: Flow re-entry risk if criteria too broad&#10;- Example: FLS not enforced in Apex"></textarea>
+
+          <label>Follow-up Actions (bullets)</label>
+          <textarea id="actionsTxt" placeholder="- Example: Add negative test for perms&#10;- Example: Add fault path + logging"></textarea>
+
+          <label>QA Validation Notes</label>
+          <textarea id="qaNotes" placeholder="- Steps to validate + sample data + expected outcomes"></textarea>
+
+          <label>Pre-Deploy Checklist (bullets)</label>
+          <textarea id="preDeploy" placeholder="- Validate in target org (check-only)&#10;- Confirm permission assignments&#10;- Smoke test plan ready"></textarea>
+
+          <label>Pre-Deploy Comments (open field)</label>
+          <textarea id="preDeployComments" placeholder="Anything special? env quirks? flags? data pre-steps?"></textarea>
+
+          <label>Post-Deploy Checklist (bullets)</label>
+          <textarea id="postDeploy" placeholder="- Assign permission sets&#10;- Run scripts/jobs (if any)&#10;- Smoke tests completed"></textarea>
+
+          <label>Post-Deploy Comments (open field)</label>
+          <textarea id="postDeployComments" placeholder="What actually happened? learnings? follow-ups?"></textarea>
+
+          <label>Deployment Notes (dependencies/backout)</label>
+          <textarea id="deployNotes" placeholder="- Dependencies, rollout/backout notes"></textarea>
+
+          <!-- Buttons grouped -->
+          <div class="actions">
+            <div class="btnRow">
+              <span class="badge">Step 3. Jira</span>
+              <button class="btn-good" id="generateBtn" type="button">Generate Jira Summary</button>
+              <button class="btn-ghost" id="copyBtn" type="button">Copy Jira Summary</button>
+            </div>
+
+            <div class="btnRow">
+              <span class="badge">Step 4. Package</span>
+              <button class="btn-ghost" id="pkgBtn" type="button">Generate package.xml</button>
+              <button class="btn-ghost" id="copyPkgBtn" type="button">Copy package.xml</button>
+            </div>
+
+            <div class="btnRow">
+              <span class="badge">Step 5. CSV</span>
+              <button class="btn-ghost" id="csvBtn" type="button">Export CSV (Type, Member)</button>
+              <button class="btn-warn" id="expandAllBtn" type="button">Expand All</button>
+              <button class="btn-warn" id="collapseAllBtn" type="button">Collapse All</button>
+              <button class="btn-bad" id="resetBtn" type="button">Reset</button>
+            </div>
+          </div>
+
+          <div class="tiny">Credits are in meta tags. Invisible, present, and low-maintenance.</div>
+        </div>
+      </div>
+
+      <!-- Right -->
+      <div class="card">
+        <h2>review.checklist <span class="badge" id="checklistBadge">full set</span></h2>
+        <div class="body">
+
+          <div id="fullSections">
+            <details open>
+              <summary><span>1) Functional & Business Alignment</span><span class="badge">ACs are not poetry</span></summary>
+              <div class="body">
+                <table class="table">
+                  <thead><tr><th>Check</th><th class="checkcell">Status</th><th>Comments</th></tr></thead>
+                  <tbody id="full-functional"></tbody>
+                </table>
+              </div>
+            </details>
+
+            <details>
+              <summary><span>2) Security & Access</span><span class="badge">no invisibility cloak bugs</span></summary>
+              <div class="body">
+                <table class="table">
+                  <thead><tr><th>Check</th><th class="checkcell">Status</th><th>Comments</th></tr></thead>
+                  <tbody id="full-security"></tbody>
+                </table>
+              </div>
+            </details>
+
+            <details>
+              <summary><span>3) Flow Review</span><span class="badge">avoid loop DML fiestas</span></summary>
+              <div class="body">
+                <table class="table">
+                  <thead><tr><th>Check</th><th class="checkcell">Status</th><th>Comments</th></tr></thead>
+                  <tbody id="full-flow"></tbody>
+                </table>
+              </div>
+            </details>
+
+            <details>
+              <summary><span>4) Apex Review</span><span class="badge">governors are watching</span></summary>
+              <div class="body">
+                <table class="table">
+                  <thead><tr><th>Check</th><th class="checkcell">Status</th><th>Comments</th></tr></thead>
+                  <tbody id="full-apex"></tbody>
+                </table>
+              </div>
+            </details>
+
+            <details>
+              <summary><span>5) LWC Review</span><span class="badge">loading states exist</span></summary>
+              <div class="body">
+                <table class="table">
+                  <thead><tr><th>Check</th><th class="checkcell">Status</th><th>Comments</th></tr></thead>
+                  <tbody id="full-lwc"></tbody>
+                </table>
+              </div>
+            </details>
+
+            <details>
+              <summary><span>6) Integration Review</span><span class="badge">assume API is having a day</span></summary>
+              <div class="body">
+                <table class="table">
+                  <thead><tr><th>Check</th><th class="checkcell">Status</th><th>Comments</th></tr></thead>
+                  <tbody id="full-integration"></tbody>
+                </table>
+              </div>
+            </details>
+
+            <details>
+              <summary><span>7) Deployment & Operations</span><span class="badge">rollback is a plan</span></summary>
+              <div class="body">
+                <table class="table">
+                  <thead><tr><th>Check</th><th class="checkcell">Status</th><th>Comments</th></tr></thead>
+                  <tbody id="full-deploy"></tbody>
+                </table>
+              </div>
+            </details>
+          </div>
+
+          <div id="lightSections" style="display:none;">
+            <details open>
+              <summary><span>Quick Safety Check</span><span class="badge">fast, not reckless</span></summary>
+              <div class="body">
+                <table class="table">
+                  <thead><tr><th>Check</th><th class="checkcell">Status</th><th>Comments</th></tr></thead>
+                  <tbody id="light-safety"></tbody>
+                </table>
+              </div>
+            </details>
+
+            <details>
+              <summary><span>Maintainability Check</span><span class="badge">future-you is a stakeholder</span></summary>
+              <div class="body">
+                <table class="table">
+                  <thead><tr><th>Check</th><th class="checkcell">Status</th><th>Comments</th></tr></thead>
+                  <tbody id="light-maintain"></tbody>
+                </table>
+              </div>
+            </details>
+
+            <details>
+              <summary><span>Deployment Safety</span><span class="badge">permissions are real</span></summary>
+              <div class="body">
+                <table class="table">
+                  <thead><tr><th>Check</th><th class="checkcell">Status</th><th>Comments</th></tr></thead>
+                  <tbody id="light-deploy"></tbody>
+                </table>
+              </div>
+            </details>
+          </div>
+
+          <div class="divider"></div>
+
+          <label>Generated Jira Summary</label>
+          <textarea id="output" readonly placeholder="Step 3: Generate Jira Summary → copy/paste into Jira"></textarea>
+
+          <label style="margin-top:10px;">Generated package.xml</label>
+          <div class="row">
+            <div>
+              <label style="margin-top:0;">API Version</label>
+              <input type="text" id="apiVersion" value="60.0" />
+            </div>
+            <div>
+              <label style="margin-top:0;">Manifest Notes (optional)</label>
+              <input type="text" id="pkgNotes" placeholder="e.g., QA deploy manifest" />
+            </div>
+          </div>
+          <textarea id="pkgOutput" readonly placeholder="Step 4: Generate package.xml"></textarea>
+
+          <div class="tiny">CSV export downloads Type, Member rows you can open in Excel.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ===== Version + Build =====
+    const ARTIFACT_VERSION = "0.3.0";
+    function isoDate(){
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    }
+    const $ = (id) => document.getElementById(id);
+
+    function toast(msg){
+      const t = $("toast");
+      t.textContent = msg;
+      t.style.display = "block";
+      setTimeout(() => t.style.display = "none", 1400);
+    }
+
+    async function copyText(text, okMsg){
+      if (!text.trim()){
+        toast("Nothing to copy yet 🙂");
+        return;
+      }
+      try{
+        await navigator.clipboard.writeText(text);
+        toast(okMsg || "Copied 📋");
+      }catch(e){
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+        toast(okMsg || "Copied (fallback) 📋");
+      }
+    }
+
+    function downloadTextFile(filename, text, mime="text/plain"){
+      const blob = new Blob([text], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function setAllDetails(open){
+      document.querySelectorAll("details").forEach(d => d.open = open);
+    }
+
+    // ===== Checklists =====
+    const FULL = {
+      functional: [
+        "Acceptance Criteria fully met (no creative interpretation)",
+        "Edge cases handled (nulls, missing related records, inactive users)",
+        "User-facing messages are clear and actionable",
+        "Reporting impact considered",
+        "No unintended downstream automation triggered",
+        "Behavior documented in ticket (how to validate)"
+      ],
+      security: [
+        "FLS enforced (Apex/LWC/Invocable where relevant)",
+        "CRUD enforced",
+        "Sharing model intentional (with/without sharing rationale)",
+        "Experience Cloud exposure reviewed (guest/auth users)",
+        "Permission sets / profiles updated",
+        "No sensitive data exposed in logs/debug"
+      ],
+      flow: [
+        "No DML or Get Records inside loops (bulk-safe)",
+        "Entry criteria correct and specific",
+        "Is Changed logic used correctly (avoid re-entry storms)",
+        "Fault paths implemented (and useful)",
+        "Elements named clearly (future readers thank you)",
+        "Reuse via subflows where appropriate",
+        "No redundant Get Records / duplicated queries"
+      ],
+      apex: [
+        "Bulkified (works with 200 records, not just 1)",
+        "Governor limits safe (SOQL/DML counts, CPU)",
+        "No hardcoded IDs/URLs/magic values",
+        "Exception handling is meaningful (no silent catch)",
+        "Tests cover happy + edge + negative scenarios",
+        "Tests consider permissions where relevant",
+        "Code is modular and readable (single responsibility-ish)"
+      ],
+      lwc: [
+        "Apex calls optimized (avoid chatty UI)",
+        "Loading and error states handled in UI",
+        "Reactive design is correct (no accidental rerenders)",
+        "Accessible-ish (labels, keyboard, basic a11y)",
+        "Experience Cloud compatibility validated (if applicable)",
+        "No direct DOM manipulation unless justified"
+      ],
+      integration: [
+        "Named Credentials used (no raw endpoints in code)",
+        "Timeouts and error handling defined",
+        "Partial failures handled (don’t pretend everything is fine)",
+        "Logging/observability strategy defined",
+        "Retry behavior evaluated (if required)",
+        "Field mapping/documentation updated"
+      ],
+      deploy: [
+        "Metadata dependencies identified (RTs, fields, PSets, Flows, etc.)",
+        "Permission sets included in deploy plan",
+        "Backout plan defined (what to revert and how)",
+        "QA steps documented (fast + specific)",
+        "Data migration/seed considerations reviewed",
+        "Monitoring/alerts noted where relevant"
+      ]
+    };
+
+    const LIGHT = {
+      safety: [
+        "Acceptance Criteria met",
+        "Security respected (FLS/CRUD/Sharing where relevant)",
+        "No loop-DML problems (Flow/Apex)",
+        "Permissions validated (at least one non-admin scenario)",
+        "Edge cases considered (nulls/missing data)"
+      ],
+      maintain: [
+        "Naming clear and consistent",
+        "No hardcoding (IDs/URLs/magic picklist strings)",
+        "Minimal duplication (don’t copy-paste a future bug)",
+        "Test evidence provided (or quick validation steps)"
+      ],
+      deploy: [
+        "Dependencies verified",
+        "Permission sets updated/included",
+        "QA steps documented"
+      ]
+    };
+
+    function makeRow(key, idx, label){
+      const row = document.createElement("tr");
+      const idBase = `${key}__${idx}`;
+
+      const tdCheck = document.createElement("td");
+      tdCheck.textContent = label;
+
+      const tdStatus = document.createElement("td");
+      tdStatus.className = "checkcell";
+      tdStatus.innerHTML = `
+        <label style="display:flex; gap:8px; align-items:center; margin:0; color:var(--text);">
+          <input type="checkbox" id="${idBase}__done" />
+          Done
+        </label>
+      `;
+
+      const tdComment = document.createElement("td");
+      tdComment.className = "commentcell";
+      tdComment.innerHTML = `<textarea id="${idBase}__comment" placeholder="Optional comment..."></textarea>`;
+
+      row.appendChild(tdCheck);
+      row.appendChild(tdStatus);
+      row.appendChild(tdComment);
+
+      setTimeout(() => {
+        $(`${idBase}__done`).addEventListener("change", autosave);
+        $(`${idBase}__comment`).addEventListener("input", autosave);
+      }, 0);
+
+      return row;
+    }
+
+    function renderChecklists(){
+      const fullMap = [
+        ["full-functional","full.functional", FULL.functional],
+        ["full-security","full.security", FULL.security],
+        ["full-flow","full.flow", FULL.flow],
+        ["full-apex","full.apex", FULL.apex],
+        ["full-lwc","full.lwc", FULL.lwc],
+        ["full-integration","full.integration", FULL.integration],
+        ["full-deploy","full.deploy", FULL.deploy]
+      ];
+      for (const [tbodyId, key, items] of fullMap){
+        const tbody = $(tbodyId);
+        tbody.innerHTML = "";
+        items.forEach((label, i) => tbody.appendChild(makeRow(key, i, label)));
+      }
+
+      const lightMap = [
+        ["light-safety","light.safety", LIGHT.safety],
+        ["light-maintain","light.maintain", LIGHT.maintain],
+        ["light-deploy","light.deploy", LIGHT.deploy]
+      ];
+      for (const [tbodyId, key, items] of lightMap){
+        const tbody = $(tbodyId);
+        tbody.innerHTML = "";
+        items.forEach((label, i) => tbody.appendChild(makeRow(key, i, label)));
+      }
+    }
+
+    // ===== Metadata Types =====
+    const METADATA_TYPES = [
+      "ApexClass","ApexTrigger","LightningComponentBundle","AuraDefinitionBundle","StaticResource",
+      "FlexiPage","Layout","CompactLayout","CustomTab","WebLink",
+      "Flow","Workflow","ValidationRule","AssignmentRules","EscalationRules","AutoResponseRules",
+      "ApprovalProcess","EntitlementProcess","MilestoneType",
+      "CustomObject","CustomField","FieldSet","RecordType","BusinessProcess","GlobalValueSet",
+      "StandardValueSet","CustomIndex","CustomReportType",
+      "PermissionSet","PermissionSetGroup","Profile","CustomPermission","MutingPermissionSet",
+      "Group","Queue","SharingRules","Role","Territory2Model","Territory2Type",
+      "Network","DigitalExperienceBundle","NavigationMenu","Audience","ExperienceBundle",
+      "NamedCredential","ExternalCredential","AuthProvider","ConnectedApp","RemoteSiteSetting",
+      "CspTrustedSite","Certificate","SamlSsoConfig","CorsWhitelistOrigin",
+      "EmailTemplate","Letterhead","EmailServicesFunction","EmailServicesAddress","CustomNotificationType",
+      "Report","ReportFolder","Dashboard","DashboardFolder",
+      "CustomMetadata","CustomMetadataType","CustomSetting","Settings","Translations","CustomLabels",
+      "DuplicateRule","MatchingRule","CleanRule","RestrictionRule",
+      "Skill","ServiceChannel","PresenceConfig",
+      "Bot","BotVersion","EinsteinBot","EinsteinBotSettings"
+    ];
+
+    const COMMON_TYPES = new Set([
+      "ApexClass","ApexTrigger","LightningComponentBundle","StaticResource",
+      "Flow","ValidationRule",
+      "CustomObject","CustomField","RecordType","GlobalValueSet",
+      "PermissionSet","PermissionSetGroup",
+      "Layout","FlexiPage",
+      "CustomMetadata","CustomSetting",
+      "NamedCredential","ExternalCredential","RemoteSiteSetting",
+      "Report","Dashboard"
+    ]);
+
+    function renderMetadataList(types){
+      const list = $("metaList");
+      list.innerHTML = "";
+      for (const t of types){
+        const id = `md__${t}`;
+        const div = document.createElement("label");
+        div.className = "metaItem";
+        div.setAttribute("for", id);
+        div.innerHTML = `<input type="checkbox" id="${id}" data-md="${t}" /> <span>${t}</span>`;
+        list.appendChild(div);
+
+        setTimeout(() => {
+          $(id).addEventListener("change", () => {
+            updateMetadataCount();
+            syncMembersRowsFromSelectedTypes();
+            autosave();
+          });
+        }, 0);
+      }
+    }
+
+    function selectedMetadataTypes(){
+      const boxes = document.querySelectorAll('input[type="checkbox"][data-md]');
+      const selected = [];
+      boxes.forEach(b => { if (b.checked) selected.push(b.getAttribute("data-md")); });
+      return selected;
+    }
+
+    function updateMetadataCount(){
+      $("metaCount").textContent = `${selectedMetadataTypes().length} selected`;
+    }
+
+    function filterMetadataList(query){
+      const q = (query || "").trim().toLowerCase();
+      const items = METADATA_TYPES.filter(t => t.toLowerCase().includes(q));
+      const selected = new Set(selectedMetadataTypes());
+      renderMetadataList(items);
+      document.querySelectorAll('input[type="checkbox"][data-md]').forEach(b => {
+        b.checked = selected.has(b.getAttribute("data-md"));
+      });
+      updateMetadataCount();
+      syncMembersRowsFromSelectedTypes();
+    }
+
+    function selectCommonTypes(){
+      document.querySelectorAll('input[type="checkbox"][data-md]').forEach(b => {
+        const t = b.getAttribute("data-md");
+        if (COMMON_TYPES.has(t)) b.checked = true;
+      });
+      updateMetadataCount();
+      syncMembersRowsFromSelectedTypes();
+      autosave();
+      toast("Common metadata selected ✅");
+    }
+
+    function clearMetadataTypes(){
+      document.querySelectorAll('input[type="checkbox"][data-md]').forEach(b => b.checked = false);
+      updateMetadataCount();
+      syncMembersRowsFromSelectedTypes();
+      autosave();
+      toast("Metadata selection cleared 🧹");
+    }
+
+    // ===== Metadata Members =====
+    function mdRowTemplate(id, selectedType = "Flow", members = "", notes = ""){
+      const div = document.createElement("div");
+      div.className = "mdRow";
+      div.dataset.rowId = id;
+
+      const typeOptions = METADATA_TYPES
+        .slice()
+        .sort((a,b)=>a.localeCompare(b))
+        .map(t => `<option value="${t}" ${t===selectedType ? "selected" : ""}>${t}</option>`)
+        .join("");
+
+      div.innerHTML = `
+        <div class="mdRowTop">
+          <div>
+            <label style="margin-top:0;">Metadata Type <span class="badge" id="mdCount__${id}">0 members</span></label>
+            <select id="mdType__${id}">${typeOptions}</select>
+          </div>
+          <div style="display:flex; gap:10px; align-items:end; justify-content:flex-end;">
+            <button class="btn-bad" type="button" id="mdRemove__${id}">Remove</button>
+          </div>
+        </div>
+
+        <div class="mdRowGrid">
+          <div>
+            <label>Members (one per line OR comma-separated)</label>
+            <textarea id="mdMembers__${id}" placeholder="Example:
+CaseTriggerFlow
+JwtService
+Support_User"></textarea>
+          </div>
+          <div>
+            <label>Notes (optional)</label>
+            <textarea id="mdNotes__${id}" placeholder="Example:
+- Deploy with dependency X
+- Requires data script Y
+- Verify perm assignments"></textarea>
+          </div>
+        </div>
+      `;
+
+      setTimeout(() => {
+        const mem = $(`mdMembers__${id}`);
+        const nts = $(`mdNotes__${id}`);
+        const sel = $(`mdType__${id}`);
+
+        mem.value = members || "";
+        nts.value = notes || "";
+
+        const updateCount = () => {
+          const membersArr = (mem.value || "")
+            .split("\n")
+            .flatMap(line => line.split(","))
+            .map(s => s.trim())
+            .filter(Boolean);
+          $(`mdCount__${id}`).textContent = `${membersArr.length} member${membersArr.length === 1 ? "" : "s"}`;
+        };
+
+        updateCount();
+
+        sel.addEventListener("change", () => {
+          syncMembersRowsFromSelectedTypes();
+          updateCount();
+          autosave();
+        });
+        mem.addEventListener("input", () => {
+          updateCount();
+          autosave();
+        });
+        nts.addEventListener("input", autosave);
+
+        $(`mdRemove__${id}`).addEventListener("click", () => {
+          div.remove();
+          syncMembersRowsFromSelectedTypes();
+          autosave();
+          toast("Member row removed 🗑️");
+        });
+      }, 0);
+
+      return div;
+    }
+
+    function mdAddRow(payload){
+      const id = String(Date.now()) + String(Math.floor(Math.random()*1000));
+      const { type, members, notes } = payload || {};
+      $("mdRows").appendChild(mdRowTemplate(id, type || "Flow", members || "", notes || ""));
+      autosave();
+    }
+
+    function mdClearRows(){
+      $("mdRows").innerHTML = "";
+      autosave();
+      toast("Members cleared 🧹");
+    }
+
+    function mdGetRows(){
+      const rows = [];
+      document.querySelectorAll("#mdRows .mdRow").forEach(r => {
+        const id = r.dataset.rowId;
+        const type = $(`mdType__${id}`)?.value || "";
+        const membersRaw = ($(`mdMembers__${id}`)?.value || "").trim();
+        const notesRaw = ($(`mdNotes__${id}`)?.value || "").trim();
+
+        const members = membersRaw
+          .split("\n")
+          .flatMap(line => line.split(","))
+          .map(s => s.trim())
+          .filter(Boolean);
+
+        rows.push({ type, members, notes: notesRaw });
+      });
+
+      const byType = {};
+      for (const r of rows){
+        if (!r.type) continue;
+        if (!byType[r.type]) byType[r.type] = { type: r.type, members: [], notes: [] };
+        byType[r.type].members.push(...(r.members || []));
+        if (r.notes) byType[r.type].notes.push(r.notes);
+      }
+
+      const merged = Object.values(byType).map(x => ({
+        type: x.type,
+        members: Array.from(new Set(x.members)),
+        notes: x.notes.join("\n")
+      }));
+
+      merged.sort((a,b)=>a.type.localeCompare(b.type));
+      return merged;
+    }
+
+    function mdParseQuickPaste(){
+      const text = ($("mdQuickPaste").value || "").trim();
+      if (!text){
+        toast("Nothing to parse ✨");
+        return;
+      }
+      const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+      for (const line of lines){
+        const idx = line.indexOf(":");
+        if (idx === -1) continue;
+        const type = line.slice(0, idx).trim();
+        const rest = line.slice(idx+1).trim();
+        if (!type || !rest) continue;
+
+        mdAddRowIfMissing(type);
+        // Put members into the existing row for that type (append)
+        const rowId = mdFindRowIdByType(type);
+        if (rowId){
+          const mem = $(`mdMembers__${rowId}`);
+          const existing = (mem.value || "").trim();
+          const newMembers = rest.split(",").map(s => s.trim()).filter(Boolean).join("\n");
+          mem.value = existing ? `${existing}\n${newMembers}` : newMembers;
+          mem.dispatchEvent(new Event("input"));
+        }
+      }
+      $("mdQuickPaste").value = "";
+      syncMembersRowsFromSelectedTypes();
+      autosave();
+      toast("Quick paste parsed ✅");
+    }
+
+    function mdFindRowIdByType(type){
+      const rows = document.querySelectorAll("#mdRows .mdRow");
+      for (const r of rows){
+        const id = r.dataset.rowId;
+        const current = $(`mdType__${id}`)?.value;
+        if (current === type) return id;
+      }
+      return null;
+    }
+
+    function mdHasTypeRow(type){
+      return !!mdFindRowIdByType(type);
+    }
+
+    function mdAddRowIfMissing(type){
+      if (!type) return;
+      if (mdHasTypeRow(type)) return;
+      mdAddRow({ type });
+    }
+
+    function syncMembersRowsFromSelectedTypes(){
+      const selected = selectedMetadataTypes();
+      selected.forEach(t => mdAddRowIfMissing(t));
+
+      // Visual cue: dim rows whose type is not selected (but keep them, to avoid data loss)
+      const selectedSet = new Set(selected);
+      document.querySelectorAll("#mdRows .mdRow").forEach(r => {
+        const id = r.dataset.rowId;
+        const t = $(`mdType__${id}`)?.value;
+        if (!t) return;
+        r.style.opacity = selectedSet.has(t) ? "1" : "0.65";
+      });
+    }
+
+    // ===== Mode switching + completion =====
+    function setMode(mode){
+      const isLight = mode === "light";
+      $("fullSections").style.display = isLight ? "none" : "block";
+      $("lightSections").style.display = isLight ? "block" : "none";
+      $("checklistBadge").textContent = isLight ? "light set" : "full set";
+      $("modeTag").textContent = `MODE: ${isLight ? "LIGHT" : "FULL"}`;
+      autosave();
+      updateCompletion();
+    }
+
+    function getChecklistSnapshot(mode){
+      const sections = [];
+      const collect = (sectionName, keyPrefix, items) => {
+        const checks = items.map((label, i) => {
+          const idBase = `${keyPrefix}__${i}`;
+          const done = $(`${idBase}__done`)?.checked || false;
+          const comment = ($(`${idBase}__comment`)?.value || "").trim();
+          return { label, done, comment };
+        });
+        sections.push({ sectionName, checks });
+      };
+
+      if (mode === "light"){
+        collect("Quick Safety Check", "light.safety", LIGHT.safety);
+        collect("Maintainability Check", "light.maintain", LIGHT.maintain);
+        collect("Deployment Safety", "light.deploy", LIGHT.deploy);
+      } else {
+        collect("Functional & Business Alignment", "full.functional", FULL.functional);
+        collect("Security & Access", "full.security", FULL.security);
+        collect("Flow Review", "full.flow", FULL.flow);
+        collect("Apex Review", "full.apex", FULL.apex);
+        collect("LWC Review", "full.lwc", FULL.lwc);
+        collect("Integration Review", "full.integration", FULL.integration);
+        collect("Deployment & Operations", "full.deploy", FULL.deploy);
+      }
+      return sections;
+    }
+
+    function completionPercent(mode){
+      const sections = getChecklistSnapshot(mode);
+      let total = 0, done = 0;
+      for (const s of sections){
+        for (const c of s.checks){
+          total += 1;
+          if (c.done) done += 1;
+        }
+      }
+      return total === 0 ? 0 : Math.round((done / total) * 100);
+    }
+
+    function updateCompletion(){
+      const mode = $("reviewType").value;
+      const pct = completionPercent(mode);
+      $("completionScore").innerHTML = `Checklist completion: <b>${pct}%</b> (future maintainers thank you)`;
+    }
+
+    // ===== Summary + package.xml + CSV =====
+    function bulletsFromTextarea(text){
+      const lines = (text || "").split("\n").map(s => s.trim()).filter(Boolean);
+      return lines.map(l => l.startsWith("-") ? l : `- ${l}`);
+    }
+
+    function genSummary(){
+      const mode = $("reviewType").value;
+      const ticket = $("ticket").value.trim();
+      const author = $("author").value.trim();
+      const reviewer = $("reviewer").value.trim();
+      const result = $("result").value;
+      const risk = $("risk").value;
+
+      const artifacts = bulletsFromTextarea($("artifacts").value);
+      const mdSelected = selectedMetadataTypes();
+      const mdOther = bulletsFromTextarea($("metaOther").value);
+      const mdMembers = mdGetRows();
+
+      const keyRisks = bulletsFromTextarea($("keyRisks").value);
+      const followups = bulletsFromTextarea($("actionsTxt").value);
+      const qaNotes = bulletsFromTextarea($("qaNotes").value);
+
+      const preDeploy = bulletsFromTextarea($("preDeploy").value);
+      const preDeployComments = $("preDeployComments").value.trim();
+      const postDeploy = bulletsFromTextarea($("postDeploy").value);
+      const postDeployComments = $("postDeployComments").value.trim();
+      const deployNotes = bulletsFromTextarea($("deployNotes").value);
+
+      const sections = getChecklistSnapshot(mode);
+      const pct = completionPercent(mode);
+      const buildDate = $("buildDateTag").textContent.replace("build: ","");
+
+      const lines = [];
+      lines.push(`h3. Salesforce Pair Review`);
+      if (ticket) lines.push(`*Ticket:* ${ticket}`);
+      lines.push(`*Review Type:* ${mode === "light" ? "Light" : "Full"}`);
+      lines.push(`*Result:* ${result}`);
+      lines.push(`*Risk Level:* ${risk}`);
+      if (author) lines.push(`*Author (Driver):* ${author}`);
+      if (reviewer) lines.push(`*Reviewer (Navigator):* ${reviewer}`);
+      lines.push(`*Artifact Version:* ${ARTIFACT_VERSION}`);
+      lines.push(`*Build Date:* ${buildDate}`);
+      lines.push(`*Checklist Completion:* ${pct}%`);
+
+      lines.push(``);
+      lines.push(`h4. Artifacts Reviewed`);
+      lines.push(artifacts.length ? artifacts.join("\n") : `- None recorded (for now)`);
+
+      lines.push(``);
+      lines.push(`h4. Metadata Types to Deploy`);
+      lines.push(mdSelected.length ? `- Selected Types: ${mdSelected.join(", ")}` : `- Selected Types: (none selected)`);
+      lines.push(mdOther.length ? mdOther.join("\n") : `- Other/Notes: (none)`);
+
+      lines.push(``);
+      lines.push(`h4. Metadata Members to Deploy`);
+      if (!mdMembers.length){
+        lines.push(`- Not provided`);
+      } else {
+        for (const block of mdMembers){
+          lines.push(`*${block.type}*`);
+          if (block.members.length){
+            for (const m of block.members) lines.push(`- ${m}`);
+          } else {
+            lines.push(`- (no members listed)`);
+          }
+          if (block.notes){
+            lines.push(`- Notes:`);
+            const noteLines = block.notes.split("\n").map(s=>s.trim()).filter(Boolean);
+            for (const nl of noteLines) lines.push(`-- ${nl}`);
+          }
+          lines.push(``);
+        }
+      }
+
+      lines.push(`h4. Key Risks Identified`);
+      lines.push(keyRisks.length ? keyRisks.join("\n") : `- None recorded`);
+
+      lines.push(``);
+      lines.push(`h4. Follow-up Actions`);
+      lines.push(followups.length ? followups.join("\n") : `- None recorded`);
+
+      lines.push(``);
+      lines.push(`h4. QA Validation Notes`);
+      lines.push(qaNotes.length ? qaNotes.join("\n") : `- Not provided yet`);
+
+      lines.push(``);
+      lines.push(`h4. Pre-Deploy Checklist`);
+      lines.push(preDeploy.length ? preDeploy.join("\n") : `- Not provided`);
+      if (preDeployComments) lines.push(`- Comments: ${preDeployComments}`);
+
+      lines.push(``);
+      lines.push(`h4. Post-Deploy Checklist`);
+      lines.push(postDeploy.length ? postDeploy.join("\n") : `- Not provided`);
+      if (postDeployComments) lines.push(`- Comments: ${postDeployComments}`);
+
+      lines.push(``);
+      lines.push(`h4. Deployment Notes`);
+      lines.push(deployNotes.length ? deployNotes.join("\n") : `- Not provided yet`);
+
+      lines.push(``);
+      lines.push(`h4. Checklist Highlights`);
+      for (const s of sections){
+        lines.push(`*${s.sectionName}*`);
+        const flagged = s.checks.filter(c => !c.done || c.comment);
+        if (flagged.length === 0){
+          lines.push(`- All checks marked Done ✅`);
+        } else {
+          for (const c of flagged){
+            const status = c.done ? "Done" : "Pending";
+            const comment = c.comment ? ` | Comment: ${c.comment}` : "";
+            lines.push(`- [${status}] ${c.label}${comment}`);
+          }
+        }
+        lines.push(``);
+      }
+
+      lines.push(`_Generated by Pair Review Tool (Developed/Designed by GraceP)._`);
+      $("output").value = lines.join("\n");
+      toast("Jira summary generated ✅");
+    }
+
+    // package.xml
+    function escapeXml(s){
+      return String(s)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&apos;");
+    }
+
+    function generatePackageXml(apiVersion = "60.0"){
+      const blocks = mdGetRows().filter(b => b.type && b.members && b.members.length);
+
+      const typesXml = blocks.map(b => {
+        const membersXml = b.members.map(m => `    <members>${escapeXml(m)}</members>`).join("\n");
+        return `${membersXml}\n    <name>${escapeXml(b.type)}</name>`;
+      }).join("\n  </types>\n  <types>\n");
+
+      const note = ($("pkgNotes")?.value || "").trim();
+      const comment = note ? `<!-- ${escapeXml(note)} -->\n` : "";
+
+      return `<?xml version="1.0" encoding="UTF-8"?>
+${comment}<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+  ${blocks.length ? `<types>\n${typesXml}\n  </types>` : `<!-- No members provided yet -->`}
+  <version>${escapeXml(apiVersion)}</version>
+</Package>`;
+    }
+
+    // CSV
+    function csvEscape(value){
+      const s = String(value ?? "");
+      if (/[",\n]/.test(s)) return `"${s.replaceAll('"', '""')}"`;
+      return s;
+    }
+
+    function generateCsv(){
+      const blocks = mdGetRows();
+      const rows = [];
+      rows.push(["Type","Member"]);
+      for (const b of blocks){
+        if (!b.type) continue;
+        if (!b.members || b.members.length === 0){
+          rows.push([b.type,""]);
+        } else {
+          for (const m of b.members) rows.push([b.type, m]);
+        }
+      }
+      return rows.map(r => r.map(csvEscape).join(",")).join("\n");
+    }
+
+    // ===== Autosave =====
+    const STORAGE_KEY = "sf_pair_review_tool_gracep_v0_3_0";
+
+    function snapshotChecklistChecks(mode){
+      const state = {};
+      const sections = getChecklistSnapshot(mode);
+      for (const s of sections){
+        for (let i=0; i<s.checks.length; i++){
+          const keyPrefix =
+            mode === "light"
+              ? (s.sectionName.includes("Safety") ? "light.safety" :
+                 s.sectionName.includes("Maintain") ? "light.maintain" : "light.deploy")
+              : (s.sectionName.includes("Functional") ? "full.functional" :
+                 s.sectionName.includes("Security") ? "full.security" :
+                 s.sectionName.includes("Flow") ? "full.flow" :
+                 s.sectionName.includes("Apex") ? "full.apex" :
+                 s.sectionName.includes("LWC") ? "full.lwc" :
+                 s.sectionName.includes("Integration") ? "full.integration" : "full.deploy");
+
+          const idBase = `${keyPrefix}__${i}`;
+          state[idBase] = {
+            done: $(`${idBase}__done`)?.checked || false,
+            comment: $(`${idBase}__comment`)?.value || ""
+          };
+        }
+      }
+      return state;
+    }
+
+    function collectState(){
+      return {
+        meta: {
+          ticket: $("ticket").value,
+          reviewType: $("reviewType").value,
+          author: $("author").value,
+          reviewer: $("reviewer").value,
+          result: $("result").value,
+          risk: $("risk").value,
+          artifacts: $("artifacts").value,
+          metaOther: $("metaOther").value,
+          mdQuickPaste: $("mdQuickPaste").value,
+          keyRisks: $("keyRisks").value,
+          actionsTxt: $("actionsTxt").value,
+          qaNotes: $("qaNotes").value,
+          preDeploy: $("preDeploy").value,
+          preDeployComments: $("preDeployComments").value,
+          postDeploy: $("postDeploy").value,
+          postDeployComments: $("postDeployComments").value,
+          deployNotes: $("deployNotes").value,
+          apiVersion: $("apiVersion").value,
+          pkgNotes: $("pkgNotes").value
+        },
+        checks: snapshotChecklistChecks($("reviewType").value),
+        mdTypesSelected: selectedMetadataTypes(),
+        mdMembersRows: mdGetRows()
+      };
+    }
+
+    function applyState(state){
+      if (!state) return;
+
+      const m = state.meta || {};
+      $("ticket").value = m.ticket || "";
+      $("reviewType").value = m.reviewType || "full";
+      $("author").value = m.author || "";
+      $("reviewer").value = m.reviewer || "";
+      $("result").value = m.result || "Approved";
+      $("risk").value = m.risk || "Low";
+      $("artifacts").value = m.artifacts || "";
+      $("metaOther").value = m.metaOther || "";
+      $("mdQuickPaste").value = m.mdQuickPaste || "";
+      $("keyRisks").value = m.keyRisks || "";
+      $("actionsTxt").value = m.actionsTxt || "";
+      $("qaNotes").value = m.qaNotes || "";
+      $("preDeploy").value = m.preDeploy || "";
+      $("preDeployComments").value = m.preDeployComments || "";
+      $("postDeploy").value = m.postDeploy || "";
+      $("postDeployComments").value = m.postDeployComments || "";
+      $("deployNotes").value = m.deployNotes || "";
+      $("apiVersion").value = m.apiVersion || "60.0";
+      $("pkgNotes").value = m.pkgNotes || "";
+
+      setMode($("reviewType").value);
+
+      const checks = state.checks || {};
+      for (const idBase of Object.keys(checks)){
+        const cb = $(`${idBase}__done`);
+        const ta = $(`${idBase}__comment`);
+        if (cb) cb.checked = !!checks[idBase].done;
+        if (ta) ta.value = checks[idBase].comment || "";
+      }
+
+      // Types selected
+      const sel = new Set(state.mdTypesSelected || []);
+      document.querySelectorAll('input[type="checkbox"][data-md]').forEach(b => {
+        b.checked = sel.has(b.getAttribute("data-md"));
+      });
+      updateMetadataCount();
+
+      // Members rows
+      $("mdRows").innerHTML = "";
+      const rows = state.mdMembersRows || [];
+      for (const r of rows){
+        mdAddRow({ type: r.type, members: (r.members || []).join("\n"), notes: r.notes || "" });
+      }
+
+      syncMembersRowsFromSelectedTypes();
+      updateCompletion();
+    }
+
+    function autosave(){
+      try{
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(collectState()));
+        updateCompletion();
+      }catch(e){}
+    }
+
+    function load(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        applyState(JSON.parse(raw));
+      }catch(e){}
+    }
+
+    function resetAll(){
+      if (!confirm("Reset everything? This clears saved local data too.")) return;
+      localStorage.removeItem(STORAGE_KEY);
+      location.reload();
+    }
+
+    // ===== Init =====
+    (function init(){
+      const bd = isoDate();
+      $("versionTag").textContent = `v${ARTIFACT_VERSION}`;
+      $("buildDateTag").textContent = `build: ${bd}`;
+
+      const metaBuild = document.querySelector('meta[name="artifact-build-date"]');
+      if (metaBuild) metaBuild.setAttribute("content", bd);
+      const metaVer = document.querySelector('meta[name="artifact-version"]');
+      if (metaVer) metaVer.setAttribute("content", ARTIFACT_VERSION);
+
+      renderChecklists();
+      renderMetadataList(METADATA_TYPES);
+      updateMetadataCount();
+
+      load();
+
+      // default member row if nothing exists yet
+      if (!$("mdRows").children.length) mdAddRow({ type: "Flow" });
+
+      // Bindings
+      $("reviewType").addEventListener("change", (e) => setMode(e.target.value));
+
+      [
+        "ticket","author","reviewer","result","risk",
+        "artifacts","metaOther","mdQuickPaste",
+        "keyRisks","actionsTxt","qaNotes",
+        "preDeploy","preDeployComments",
+        "postDeploy","postDeployComments",
+        "deployNotes","apiVersion","pkgNotes"
+      ].forEach(id => $(id).addEventListener("input", autosave));
+
+      $("metaSearch").addEventListener("input", (e) => filterMetadataList(e.target.value));
+      $("metaSelectCommonBtn").addEventListener("click", selectCommonTypes);
+      $("metaClearBtn").addEventListener("click", clearMetadataTypes);
+
+      $("mdAddRowBtn").addEventListener("click", () => mdAddRow({ type: "Flow" }));
+      $("mdAddSelectedBtn").addEventListener("click", () => {
+        selectedMetadataTypes().forEach(t => mdAddRowIfMissing(t));
+        syncMembersRowsFromSelectedTypes();
+        autosave();
+        toast("Selected types added ✅");
+      });
+      $("mdParsePasteBtn").addEventListener("click", mdParseQuickPaste);
+      $("mdClearRowsBtn").addEventListener("click", mdClearRows);
+
+      $("generateBtn").addEventListener("click", genSummary);
+      $("copyBtn").addEventListener("click", () => copyText($("output").value, "Jira summary copied 📋"));
+
+      $("pkgBtn").addEventListener("click", () => {
+        const xml = generatePackageXml(($("apiVersion").value || "60.0").trim());
+        $("pkgOutput").value = xml;
+        toast("package.xml generated ✅");
+        autosave();
+      });
+      $("copyPkgBtn").addEventListener("click", () => copyText($("pkgOutput").value, "package.xml copied 📋"));
+
+      $("csvBtn").addEventListener("click", () => {
+        const csv = generateCsv();
+        downloadTextFile(`metadata-deploy-${isoDate()}.csv`, csv, "text/csv");
+        toast("CSV exported ✅");
+      });
+
+      $("expandAllBtn").addEventListener("click", () => setAllDetails(true));
+      $("collapseAllBtn").addEventListener("click", () => setAllDetails(false));
+      $("resetBtn").addEventListener("click", resetAll);
+
+      // Ensure Step 1 -> Step 2 sync on load
+      syncMembersRowsFromSelectedTypes();
+      setMode($("reviewType").value);
+    })();
+  </script>
+</body>
+</html>
